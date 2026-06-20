@@ -14,7 +14,6 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
 |------|---------|
 | `Dockerfile` | Builds the image: pulls the NPM release, applies `patches/`, builds frontend/backend, installs nginx + certbot. |
 | `config.yaml` | Add-on manifest: `version`, supported `arch`, ports, mappings. |
-| `build.yaml` | Per-arch base image (`ghcr.io/hassio-addons/base:<ver>`). |
 | `patches/*.patch` | Patches applied to the upstream NPM source during build. |
 | `rootfs/` | Files baked into the container (s6 services, scripts). |
 | `translations/` | i18n. |
@@ -36,6 +35,9 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   - base `21.0.0` → Alpine 3.24 (nginx 1.30.x)
   - **There is no base image that keeps `armv7` AND ships Alpine newer than
     3.22.** Newer nginx requires dropping 32-bit ARM.
+  - The base image is set by `ARG BUILD_FROM` in the `Dockerfile`. There is **no
+    `build.yaml`** (Supervisor deprecated it); both arches use the same multi-arch
+    tag, so the single ARG default covers them. To bump the base, edit that ARG.
 
 - **nginx version policy:** prefer the **stable** branch (even minor, e.g.
   `1.30.x`) over mainline (odd minor, e.g. `1.31.x`) for this production proxy.
