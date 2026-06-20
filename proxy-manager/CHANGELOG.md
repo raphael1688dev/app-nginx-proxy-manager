@@ -13,6 +13,14 @@ All notable changes to this add-on are documented in this file.
   ignores it).
 - Point `config.yaml` `url` at this fork.
 
+### 🐛 Fixes
+
+- Fix recurring logrotate error `unknown group 'npm'`. The add-on runs its
+  services as `root` and never creates the upstream `npm` user/group, but the
+  logrotate config shipped by NPM declares `su npm npm`. Rewrite it to
+  `su root root` during build (same approach already used for `nginx.conf`),
+  so nginx access/error logs in `/data/logs` rotate instead of being skipped.
+
 ## 3.0.0 (2026-06-20)
 
 ### ⚠️ Breaking changes
