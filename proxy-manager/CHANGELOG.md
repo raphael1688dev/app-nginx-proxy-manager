@@ -2,6 +2,17 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 3.0.1 (2026-06-20)
+
+### 🧹 Config modernisation (clears Supervisor deprecation warnings)
+
+- Remove `build.yaml`. Both supported architectures use the same base image,
+  which is now declared by the `ARG BUILD_FROM` default in the `Dockerfile`,
+  as required by current Supervisor (`build.yaml` is deprecated).
+- Remove the deprecated `codenotary` field from `config.yaml` (Supervisor now
+  ignores it).
+- Point `config.yaml` `url` at this fork.
+
 ## 3.0.0 (2026-06-20)
 
 ### ⚠️ Breaking changes
