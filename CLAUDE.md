@@ -63,10 +63,25 @@ machine with Docker (amd64 or aarch64) before publishing. The highest-risk areas
 after a base bump are the NPM frontend `yarn build` (Node major change) and
 certbot.
 
+The fastest real verification is to install the add-on on a Home Assistant box
+(add this repo as a custom repository) and watch the add-on Log — Supervisor
+builds the image locally for that machine's arch.
+
+**Verified working:** the `3.x` line (base 21 / Alpine 3.24 / nginx 1.30.2 /
+Node 24 / Python 3.14) builds and runs on an **ODROID-N2 (aarch64, HA OS 18.0)**.
+`yarn build` and runtime came up clean; the only runtime issue was the logrotate
+`unknown group 'npm'` error, fixed in 3.0.1.
+
 ## Repo / git
 
 - Remote `origin` → `https://github.com/raphael1688dev/app-nginx-proxy-manager.git`
   (default branch `main`). Authenticated via `gh` as account `raphael1688`.
+- The repo is owned by the **`raphael1688dev` org**, whose Actions policy forces
+  workflow tokens to read-only. The upstream shared CI (`hassio-addons/workflows`)
+  needs write scopes, so it `startup_failure`s here — CI is effectively unusable
+  on this fork; verify by installing on Home Assistant instead.
+- Root **`repository.yaml`** (name/url/maintainer) is required for Home Assistant
+  to accept this single-add-on repo as a custom repository.
 - Commit/push only when the user asks.
 
 [npm]: https://nginxproxymanager.com/
