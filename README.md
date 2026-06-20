@@ -43,6 +43,16 @@ Nginx proxy manager by providing additional Nginx directives.
 
 [:books: Read the full add-on documentation][docs]
 
+## Supported architectures
+
+As of **v3.0.0**, this add-on is built on Home Assistant base image 21
+(Alpine 3.24) and only supports 64-bit architectures:
+
+- ✅ `aarch64` (64-bit ARM)
+- ✅ `amd64` (64-bit Intel/AMD)
+- ❌ `armv7` — **dropped in v3.0.0** (the base image no longer ships 32-bit
+  builds). Stay on **v2.x** if you need a 32-bit ARM device.
+
 ## Support
 
 Got questions?
@@ -109,7 +119,7 @@ SOFTWARE.
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
 [armhf-shield]: https://img.shields.io/badge/armhf-no-red.svg
-[armv7-shield]: https://img.shields.io/badge/armv7-yes-green.svg
+[armv7-shield]: https://img.shields.io/badge/armv7-no-red.svg
 [commits-shield]: https://img.shields.io/github/commit-activity/y/hassio-addons/addon-nginx-proxy-manager.svg
 [commits]: https://github.com/hassio-addons/addon-nginx-proxy-manager/commits/main
 [contributors]: https://github.com/hassio-addons/addon-nginx-proxy-manager/graphs/contributors
