@@ -48,6 +48,15 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   `NODE_OPTIONS="--openssl-legacy-provider"` is required. Keep the comment's Node
   major version in sync with the pinned `nodejs` package.
 
+- **The NPM app version is separate from the add-on version.**
+  `ARG NGINX_PROXY_MANAGER_VERSION` in the `Dockerfile` pins the upstream
+  *application* (`NginxProxyManager/nginx-proxy-manager` GitHub release); this is
+  independent of `config.yaml` `version:` (the add-on wrapper). Bumping it is
+  **higher-risk than apk re-pins**: the six `patches/*.patch` are written against
+  a specific NPM version and may fail to apply across a version jump, and the
+  frontend `yarn build` may change. Process: bump the ARG → build → fix any
+  failing patch one by one → verify on hardware.
+
 ## Versioning & releases
 
 - `config.yaml` `version:` holds the add-on version (semver). Breaking changes
