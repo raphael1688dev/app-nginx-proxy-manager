@@ -57,6 +57,17 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   frontend `yarn build` may change. Process: bump the ARG → build → fix any
   failing patch one by one → verify on hardware.
 
+  **Pinned at `v2.12.4` on purpose — do not bump past it without a port.**
+  NPM **v2.13.0 rewrote the frontend from webpack to Vite** (React 19 + TS +
+  Biome); `frontend/webpack.config.js` is gone. That makes patches **0004**
+  (node-sass→sass) and **0005** (sass-loader/webpack) obsolete and breaks the
+  rest, and the Dockerfile's webpack-era build (incl.
+  `NODE_OPTIONS=--openssl-legacy-provider`) would need rewriting for Vite.
+  The **upstream hassio-addons add-on also stays on `v2.12.4`** for this reason.
+  Checked 2026-06-20: bumping to 2.15.1 is a full port nobody upstream has done;
+  decision was to **stay on 2.12.4**. (`v2.12.6` is the last webpack release if a
+  small same-architecture bump is ever wanted.)
+
 ## Versioning & releases
 
 - `config.yaml` `version:` holds the add-on version (semver). Breaking changes
