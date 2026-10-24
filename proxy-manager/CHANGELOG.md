@@ -2,6 +2,42 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.0.0 (2026-10-24)
+
+Re-sync with the re-architected upstream add-on. Upstream solved the NPM
+v2.13+ frontend rewrite (webpack → Vite) by **rebasing the whole add-on from
+Alpine onto Debian**; this release adopts that work.
+
+### ⚠️ Breaking / major changes
+
+- **Base image switched from Alpine to Debian.** Now builds on
+  `ghcr.io/hassio-addons/debian-base:9.5.1` (Debian trixie) instead of
+  `ghcr.io/hassio-addons/base` (Alpine). Supported architectures are unchanged
+  (`aarch64`, `amd64`).
+- **Nginx Proxy Manager app `v2.12.4` → `v2.16.0`** (frontend is now Vite +
+  React 19 + TypeScript).
+- **nginx `1.30.2` (Alpine, stable) → `1.31.8` (nginx.org mainline Debian repo)**.
+  The stream module is compiled in statically, so `nginx-mod-stream` is gone.
+- **Node.js 24 (Alpine) → 22 (NodeSource)**; the old-webpack
+  `NODE_OPTIONS=--openssl-legacy-provider` workaround is removed (Vite build).
+- **certbot** is now installed in a pip venv at `/opt/certbot` (certbot 5.8.0),
+  pinned via `PIP_CONSTRAINT`, instead of the Alpine `certbot` package.
+- Dependencies are now **Debian `apt` packages** (version-pinned to Debian
+  trixie) instead of Alpine `apk` pins.
+
+### 🔁 Patches
+
+- Replaced the 6 Alpine-era patches with upstream's current **3**:
+  `0001-Patch-data-to-config-folder`, `0002-Patch-keep-log-files-out-of-the-config-share`,
+  `0003-Patch-certbot-plugin-install-failures-at-startup`. The old node-sass /
+  webpack / sass-loader patches are obsolete under Vite. The logrotate and
+  nginx `root`-user fixes are now carried by upstream itself.
+
+### 🗂 Fork specifics kept
+
+- Root `repository.yaml` (name "Nginx Proxy Manager APP"), `config.yaml` `url`
+  pointing at this fork, and the single-`ARG BUILD_FROM` base (no `build.yaml`).
+
 ## 3.0.1 (2026-06-20)
 
 ### 🧹 Config modernisation (clears Supervisor deprecation warnings)

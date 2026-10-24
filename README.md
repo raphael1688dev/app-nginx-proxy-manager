@@ -45,8 +45,8 @@ Nginx proxy manager by providing additional Nginx directives.
 
 ## Supported architectures
 
-As of **v3.0.0**, this add-on is built on Home Assistant base image 21
-(Alpine 3.24) and only supports 64-bit architectures:
+As of **v4.0.0**, this add-on is built on the Home Assistant Debian base image
+(Debian trixie) and only supports 64-bit architectures:
 
 - ✅ `aarch64` (64-bit ARM)
 - ✅ `amd64` (64-bit Intel/AMD)

@@ -12,61 +12,62 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile` | Builds the image: pulls the NPM release, applies `patches/`, builds frontend/backend, installs nginx + certbot. |
+| `Dockerfile` | Builds the image on **Debian** (`debian-base`): installs apt deps, adds nginx.org + NodeSource repos, pulls the NPM release, applies `patches/`, builds the frontend (Vite), installs certbot in a pip venv. |
 | `config.yaml` | Add-on manifest: `version`, supported `arch`, ports, mappings. |
 | `patches/*.patch` | Patches applied to the upstream NPM source during build. |
 | `rootfs/` | Files baked into the container (s6 services, scripts). |
 | `translations/` | i18n. |
 | `CHANGELOG.md` | Per-version change history. |
 
+## Architecture (as of v4.0.0 — Debian)
+
+> History: v3.x was Alpine-based (`hassio-addons/base`, `apk` pins, nginx from
+> Alpine). NPM v2.13.0 rewrote the frontend from webpack to Vite, which broke
+> the Alpine patch set. Upstream resolved this by **rebasing the whole add-on
+> onto Debian**; v4.0.0 adopts that. Do not reintroduce the Alpine approach.
+
 ## Critical constraints
 
-- **Alpine package pins are exact and Alpine-version-specific.** Every `apk add`
-  in the `Dockerfile` pins `name=x.y.z-rN`. These strings are valid only for the
-  Alpine release of the chosen base image. **Bumping the base image major version
-  means re-pinning every package** to the versions that exist in the new Alpine
-  branch (look them up at <https://pkgs.alpinelinux.org/packages>), or the build
-  fails. `nginx` and `nginx-mod-stream` must always be the **same** version.
+- **Base image is Debian.** `ARG BUILD_FROM=ghcr.io/hassio-addons/debian-base:<ver>`
+  (Debian trixie). There is **no `build.yaml`** — both supported arches
+  (`aarch64`, `amd64`) use the same multi-arch tag, so the single ARG default
+  covers them. To bump the base, edit that ARG. (armv7/32-bit was dropped back in
+  v3.0.0 and is not coming back.)
 
-- **Base image ↔ Alpine ↔ architecture mapping** (source repo:
-  `hassio-addons/addon-base`):
-  - base `18.x` → Alpine 3.22, supports `aarch64`/`amd64`/`armv7` (+ armhf/i386)
-  - base `19.x`+ → **32-bit arches dropped**; `aarch64`/`amd64` only
-  - base `21.0.0` → Alpine 3.24 (nginx 1.30.x)
-  - **There is no base image that keeps `armv7` AND ships Alpine newer than
-    3.22.** Newer nginx requires dropping 32-bit ARM.
-  - The base image is set by `ARG BUILD_FROM` in the `Dockerfile`. There is **no
-    `build.yaml`** (Supervisor deprecated it); both arches use the same multi-arch
-    tag, so the single ARG default covers them. To bump the base, edit that ARG.
+- **Dependencies are Debian `apt` pins**, e.g. `nginx=1.31.8-1~trixie`,
+  `nodejs=22.x-1nodesource1`. Exact versions are Debian-trixie-specific; look them
+  up with `apt-cache policy <pkg>` in the base image, or on
+  <https://packages.debian.org>. The `logrotate` pin uses a trailing `*` because
+  its binNMU suffix differs per arch — keep that pattern.
 
-- **nginx version policy:** prefer the **stable** branch (even minor, e.g.
-  `1.30.x`) over mainline (odd minor, e.g. `1.31.x`) for this production proxy.
-  Note the Dockerfile installs nginx from Alpine's repo, which only ships stable
-  — not from nginx.org.
+- **nginx comes from nginx.org's mainline Debian repo** (added via signing key in
+  the Dockerfile), not Debian's own nginx (too old) — currently `1.31.x`
+  mainline. The stream module is compiled in statically, so there is **no
+  `nginx-mod-stream`** package to keep in sync anymore.
 
-- **Node.js + legacy OpenSSL:** the NPM frontend builds with an old webpack, so
-  `NODE_OPTIONS="--openssl-legacy-provider"` is required. Keep the comment's Node
-  major version in sync with the pinned `nodejs` package.
+- **Node.js comes from NodeSource** (`node_22.x`), because the app needs Node 22
+  and Debian ships 20. npm is bundled in that package (no separate `npm` pin).
+  The Vite build needs **no** `--openssl-legacy-provider` (that was a webpack-era
+  workaround; it is gone).
+
+- **certbot is a pip venv** at `/opt/certbot` (not an OS package), pinned by
+  `ARG CERTBOT_VERSION` and frozen via `PIP_CONSTRAINT=/etc/certbot-constraints.txt`
+  so later `pip install`s can't replace the stack.
 
 - **The NPM app version is separate from the add-on version.**
-  `ARG NGINX_PROXY_MANAGER_VERSION` in the `Dockerfile` pins the upstream
-  *application* (`NginxProxyManager/nginx-proxy-manager` GitHub release); this is
-  independent of `config.yaml` `version:` (the add-on wrapper). Bumping it is
-  **higher-risk than apk re-pins**: the six `patches/*.patch` are written against
-  a specific NPM version and may fail to apply across a version jump, and the
-  frontend `yarn build` may change. Process: bump the ARG → build → fix any
-  failing patch one by one → verify on hardware.
+  `ARG NGINX_PROXY_MANAGER_VERSION` pins the upstream *application*
+  (`NginxProxyManager/nginx-proxy-manager` GitHub release); `config.yaml`
+  `version:` is the add-on wrapper. Bumping the app is the **highest-risk** change
+  (the 3 `patches/*.patch` are written against a specific NPM version and the
+  Vite build may shift). Process: bump the ARG → build → fix any failing patch
+  → verify on hardware. The simplest safe path for a big app jump is to re-sync
+  from upstream `hassio-addons/addon-nginx-proxy-manager` (see below).
 
-  **Pinned at `v2.12.4` on purpose — do not bump past it without a port.**
-  NPM **v2.13.0 rewrote the frontend from webpack to Vite** (React 19 + TS +
-  Biome); `frontend/webpack.config.js` is gone. That makes patches **0004**
-  (node-sass→sass) and **0005** (sass-loader/webpack) obsolete and breaks the
-  rest, and the Dockerfile's webpack-era build (incl.
-  `NODE_OPTIONS=--openssl-legacy-provider`) would need rewriting for Vite.
-  The **upstream hassio-addons add-on also stays on `v2.12.4`** for this reason.
-  Checked 2026-06-20: bumping to 2.15.1 is a full port nobody upstream has done;
-  decision was to **stay on 2.12.4**. (`v2.12.6` is the last webpack release if a
-  small same-architecture bump is ever wanted.)
+- **Prefer re-syncing from upstream over hand-porting.** Upstream does the hard
+  work (frontend rewrites, patch maintenance, dep pins). When catching up, copy
+  upstream's `proxy-manager/{Dockerfile,patches,rootfs,translations,.README.j2,DOCS.md}`
+  wholesale, then re-apply the fork specifics below. That is exactly how v4.0.0
+  was produced.
 
 ## Versioning & releases
 
@@ -87,10 +88,13 @@ The fastest real verification is to install the add-on on a Home Assistant box
 (add this repo as a custom repository) and watch the add-on Log — Supervisor
 builds the image locally for that machine's arch.
 
-**Verified working:** the `3.x` line (base 21 / Alpine 3.24 / nginx 1.30.2 /
-Node 24 / Python 3.14) builds and runs on an **aarch64 (aarch64, HA OS 18.0)**.
-`yarn build` and runtime came up clean; the only runtime issue was the logrotate
-`unknown group 'npm'` error, fixed in 3.0.1.
+**Verified history:** the `3.x` line (Alpine base 21 / nginx 1.30.2 / Node 24)
+built and ran clean on an **aarch64 (aarch64, HA OS 18.0)**.
+
+**`4.0.0` (Debian / NPM 2.16.0) is NOT yet hardware-verified** — it was produced
+by re-syncing from upstream and must be built on the aarch64 before it is
+trusted. Watch especially the Vite `yarn build`, the nginx.org/NodeSource apt
+repos resolving, and certbot in its venv.
 
 ## Repo / git
 
@@ -100,8 +104,18 @@ Node 24 / Python 3.14) builds and runs on an **aarch64 (aarch64, HA OS 18.0)**.
   workflow tokens to read-only. The upstream shared CI (`hassio-addons/workflows`)
   needs write scopes, so it `startup_failure`s here — CI is effectively unusable
   on this fork; verify by installing on Home Assistant instead.
-- Root **`repository.yaml`** (name/url/maintainer) is required for Home Assistant
-  to accept this single-add-on repo as a custom repository.
 - Commit/push only when the user asks.
+
+## Fork specifics (re-apply these after any upstream re-sync)
+
+- Root **`repository.yaml`** (name "Nginx Proxy Manager APP", this fork's url +
+  maintainer) — required for Home Assistant to accept this single-add-on repo as
+  a custom repository. Upstream has no such file.
+- `config.yaml`: our own `version:` (semver; breaking changes → major bump) and
+  `url:` pointing at this fork. Upstream ships `version: dev`.
+- **No `build.yaml`** — rely on the `Dockerfile` `ARG BUILD_FROM` default (keeps
+  Supervisor's deprecation warning away). Upstream still ships one.
+- Fork meta not present upstream: `CLAUDE.md`, `.gitignore`, root `README.md`
+  "Supported architectures" note, `proxy-manager/CHANGELOG.md`.
 
 [npm]: https://nginxproxymanager.com/
