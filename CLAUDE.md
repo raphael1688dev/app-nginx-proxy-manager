@@ -113,6 +113,11 @@ repos resolving, and certbot in its venv.
   a custom repository. Upstream has no such file.
 - `config.yaml`: our own `version:` (semver; breaking changes → major bump) and
   `url:` pointing at this fork. Upstream ships `version: dev`.
+- `config.yaml` `map:` uses the modern object form with the current type name —
+  `- type: app_config` / `read_only: false` — instead of upstream's deprecated
+  short form `- addon_config:rw`. Same mount (`/config`, backed by the slug's
+  `/addon_configs/nginxproxymanager`), just no Supervisor deprecation warning.
+  Re-apply after a re-sync until upstream adopts it.
 - **No `build.yaml`** — rely on the `Dockerfile` `ARG BUILD_FROM` default (keeps
   Supervisor's deprecation warning away). Upstream still ships one.
 - Fork meta not present upstream: `CLAUDE.md`, `.gitignore`, root `README.md`

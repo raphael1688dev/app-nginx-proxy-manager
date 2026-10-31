@@ -37,6 +37,10 @@ Alpine onto Debian**; this release adopts that work.
 
 - Root `repository.yaml` (name "Nginx Proxy Manager APP"), `config.yaml` `url`
   pointing at this fork, and the single-`ARG BUILD_FROM` base (no `build.yaml`).
+- `config.yaml` `map:` uses the current spec's object form
+  (`- type: app_config` / `read_only: false`) instead of upstream's deprecated
+  short form `- addon_config:rw`, clearing the Supervisor deprecation warning.
+  Same mount point and data location (slug unchanged).
 
 ## 3.0.1 (2026-06-20)
 
