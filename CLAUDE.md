@@ -90,10 +90,10 @@ builds the image locally for that machine's arch.
 
 **Verified history:**
 - The `3.x` line (Alpine base 21 / nginx 1.30.2 / Node 24) built and ran clean
-  on an **aarch64 (aarch64, HA OS 18.0)**.
+  on real **aarch64** hardware (HA OS 18.0).
 - **`4.0.0` (Debian / NPM 2.16.0 / nginx 1.31.8 / Node 22) is hardware-verified:**
-  built and ran clean on the **aarch64 (aarch64, HA OS 18.4, HA Core
-  2026.11.0b2, Supervisor 2026.10.5)** on 2026-10-31 — Vite `yarn build`, the
+  built and ran clean on real **aarch64** hardware (HA OS 18.4, HA Core
+  2026.11.0b2, Supervisor 2026.10.5) on 2026-10-31 — Vite `yarn build`, the
   nginx.org/NodeSource apt repos, and certbot in its venv all succeeded; NPM
   backend came up on :3000, DB migrations ran, logrotate clean, and the
   `app_config` map mounts data at `/config` as before.

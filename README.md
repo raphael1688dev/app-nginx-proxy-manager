@@ -31,7 +31,7 @@ Home Assistant custom repository so it can be installed on its own.
   Nginx Proxy Manager **2.16.0**, nginx 1.31.x (nginx.org mainline), Node 22 and
   certbot in a pip venv.
 - Only **64-bit** architectures are built (`aarch64`, `amd64`) — see below.
-- Verified on an **aarch64** (aarch64) running Home Assistant OS.
+- Verified on real **aarch64** hardware running Home Assistant OS.
 
 To install, add this repository's URL under
 **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, then install
