@@ -88,13 +88,15 @@ The fastest real verification is to install the add-on on a Home Assistant box
 (add this repo as a custom repository) and watch the add-on Log — Supervisor
 builds the image locally for that machine's arch.
 
-**Verified history:** the `3.x` line (Alpine base 21 / nginx 1.30.2 / Node 24)
-built and ran clean on an **aarch64 (aarch64, HA OS 18.0)**.
-
-**`4.0.0` (Debian / NPM 2.16.0) is NOT yet hardware-verified** — it was produced
-by re-syncing from upstream and must be built on the aarch64 before it is
-trusted. Watch especially the Vite `yarn build`, the nginx.org/NodeSource apt
-repos resolving, and certbot in its venv.
+**Verified history:**
+- The `3.x` line (Alpine base 21 / nginx 1.30.2 / Node 24) built and ran clean
+  on an **aarch64 (aarch64, HA OS 18.0)**.
+- **`4.0.0` (Debian / NPM 2.16.0 / nginx 1.31.8 / Node 22) is hardware-verified:**
+  built and ran clean on the **aarch64 (aarch64, HA OS 18.4, HA Core
+  2026.11.0b2, Supervisor 2026.10.5)** on 2026-10-31 — Vite `yarn build`, the
+  nginx.org/NodeSource apt repos, and certbot in its venv all succeeded; NPM
+  backend came up on :3000, DB migrations ran, logrotate clean, and the
+  `app_config` map mounts data at `/config` as before.
 
 ## Repo / git
 
