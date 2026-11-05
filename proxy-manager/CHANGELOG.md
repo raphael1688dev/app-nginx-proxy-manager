@@ -2,6 +2,17 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.0.1 (2026-11-05)
+
+### ⬆️ Upgrades
+
+- Upgrade **certbot** `5.8.0` → `5.9.0` (installed in the `/opt/certbot` pip
+  venv via `ARG CERTBOT_VERSION`), matching upstream.
+- Upgrade base image **`ghcr.io/hassio-addons/debian-base`** `9.5.1` → `9.5.2`
+  (`ARG BUILD_FROM`), matching upstream.
+- No other dependency changed: nginx is already at the latest nginx.org mainline
+  `1.31.8`, and the Nginx Proxy Manager app stays at `2.16.0`.
+
 ## 4.0.0 (2026-10-24)
 
 Re-sync with the re-architected upstream add-on. Upstream solved the NPM
