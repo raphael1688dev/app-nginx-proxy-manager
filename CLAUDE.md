@@ -97,6 +97,8 @@ builds the image locally for that machine's arch.
   nginx.org/NodeSource apt repos, and certbot in its venv all succeeded; NPM
   backend came up on :3000, DB migrations ran, logrotate clean, and the
   `app_config` map mounts data at `/config` as before.
+- **`4.0.1` is hardware-verified and released (2026-11-06):** certbot 5.9.0 +
+  debian-base 9.5.2 (caught up to upstream HEAD); built/ran clean on aarch64.
 
 ## Repo / git
 
