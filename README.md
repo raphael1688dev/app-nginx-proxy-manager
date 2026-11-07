@@ -31,6 +31,9 @@ Home Assistant custom repository so it can be installed on its own.
   Nginx Proxy Manager **2.16.0**, nginx 1.31.x (nginx.org mainline), Node 22 and
   certbot in a pip venv.
 - Only **64-bit** architectures are built (`aarch64`, `amd64`) — see below.
+- **Sidebar support (v4.1.0+)**: the interface works through Home Assistant
+  ingress, so it can be shown in the sidebar ("Show in sidebar" on the add-on
+  page). The admin port `81` still works as before.
 - Verified on real **aarch64** hardware running Home Assistant OS.
 
 To install, add this repository's URL under

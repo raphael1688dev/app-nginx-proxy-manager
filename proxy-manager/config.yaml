@@ -1,10 +1,12 @@
 ---
 name: Nginx Proxy Manager
-version: 4.0.1
+version: 4.1.0
 slug: nginxproxymanager
 description: Manage Nginx proxy hosts with a simple, powerful interface
 url: https://github.com/raphael1688dev/app-nginx-proxy-manager
-webui: http://[HOST]:[PORT:81]
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:web
 startup: services
 init: false
 arch:

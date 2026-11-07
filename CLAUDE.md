@@ -58,7 +58,7 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   `ARG NGINX_PROXY_MANAGER_VERSION` pins the upstream *application*
   (`NginxProxyManager/nginx-proxy-manager` GitHub release); `config.yaml`
   `version:` is the add-on wrapper. Bumping the app is the **highest-risk** change
-  (the 3 `patches/*.patch` are written against a specific NPM version and the
+  (the 4 `patches/*.patch` are written against a specific NPM version and the
   Vite build may shift). Process: bump the ARG → build → fix any failing patch
   → verify on hardware. The simplest safe path for a big app jump is to re-sync
   from upstream `hassio-addons/addon-nginx-proxy-manager` (see below).
@@ -66,7 +66,9 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
 - **Prefer re-syncing from upstream over hand-porting.** Upstream does the hard
   work (frontend rewrites, patch maintenance, dep pins). When catching up, copy
   upstream's `proxy-manager/{Dockerfile,patches,rootfs,translations,.README.j2,DOCS.md}`
-  wholesale, then re-apply the fork specifics below. That is exactly how v4.0.0
+  wholesale — **except keep the fork's own `patches/0004-*` and
+  `rootfs/etc/nginx/conf.d/ingress.conf`** — then re-apply the fork specifics
+  below. That is exactly how v4.0.0
   was produced.
 
 ## Versioning & releases
@@ -124,6 +126,30 @@ builds the image locally for that machine's arch.
   Re-apply after a re-sync until upstream adopts it.
 - **No `build.yaml`** — rely on the `Dockerfile` `ARG BUILD_FROM` default (keeps
   Supervisor's deprecation warning away). Upstream still ships one.
+- **Home Assistant ingress (sidebar), since v4.1.0.** Upstream declined it
+  (hassio-addons/app-nginx-proxy-manager#649: the app can't run under a
+  subfolder), so the fork carries three pieces that must survive a re-sync:
+  - `patches/0004-Patch-support-Home-Assistant-ingress.patch` — makes the NPM
+    frontend base-path aware: Vite `base: "./"`, an empty
+    `<meta name="ingress-path" content="" />` in `index.html`, a
+    `src/modules/BasePath.ts` module used by the API client (`base.ts`), the
+    `BrowserRouter` `basename` and every `/images/...` path, plus a nested
+    `/<route>/(assets|images)/` rule in the admin `production.conf.template`.
+    Written against NPM `v2.16.0`; **re-check it on every NPM app bump** (it is
+    the patch most likely to break, e.g. on another frontend rewrite). Do
+    **not** switch to a `<base href>` tag instead: the UI has many `href="#"`
+    links that a base tag would turn into page loads.
+  - `rootfs/etc/nginx/conf.d/ingress.conf` — server on `8099`, `allow
+    172.30.32.2` only, proxies `/api/` to the backend on `:3000`, and
+    `sub_filter`s the `X-Ingress-Path` header into that meta tag (the exact
+    string must match `index.html`).
+  - `config.yaml` `ingress: true`, `ingress_port: 8099`, `panel_icon`; no
+    `webui`.
+  - Verify a patch change by building the frontend outside Docker:
+    `git apply` patches 0001–0004 in order onto a clean NPM checkout, then
+    `yarn install --frozen-lockfile --ignore-scripts && yarn locale-compile &&
+    yarn build` in `frontend/`, and check `dist/index.html` and the bundles for
+    leftover absolute `/assets/`, `/api/` or `/images/` paths.
 - Fork meta not present upstream: `CLAUDE.md`, `.gitignore`, root `README.md`
   "Supported architectures" note, `proxy-manager/CHANGELOG.md`.
 

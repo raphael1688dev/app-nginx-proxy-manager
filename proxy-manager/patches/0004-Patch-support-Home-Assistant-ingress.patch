@@ -1,0 +1,268 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: raphael1688 <schuey@gmail.com>
+Date: Sat, 07 Nov 2026 09:27:18 +0800
+Subject: [PATCH] Patch support Home Assistant ingress
+
+Home Assistant can only show an add-on in its sidebar through ingress,
+which serves the add-on under a per-install path prefix
+(/api/hassio_ingress/<token>). The interface assumed it lives at the
+root of its own port: it called its API at /api/..., loaded its images
+and built files from /, and routed without a base path. Under ingress
+/api/... even reaches Home Assistant's own API instead.
+
+Make that prefix a runtime setting:
+
+  - Vite builds with a relative base, so the built files and the lazily
+    loaded pages load relative to the page.
+
+  - index.html carries an empty ingress-path meta tag. The add-on's
+    ingress server fills it in from the X-Ingress-Path header. On the
+    admin port it stays empty and the interface behaves as before.
+
+  - A small BasePath module reads that tag. The API client, the router
+    basename and the image paths use it.
+
+  - Because the files now load relative to the page, a page opened at a
+    nested route asks for e.g. /nginx/assets/index.js. The admin
+    interface's nginx configuration serves those from the top level.
+---
+ .../rootfs/etc/nginx/conf.d/production.conf.template   |  8 ++++++++
+ frontend/index.html                                    |  1 +
+ frontend/src/Router.tsx                                |  3 ++-
+ frontend/src/api/backend/base.ts                       |  3 ++-
+ frontend/src/components/Loading.tsx                    |  3 ++-
+ frontend/src/components/SiteHeader.tsx                 |  5 +++--
+ .../components/Table/Formatter/GravatarFormatter.tsx   |  4 +++-
+ frontend/src/components/Unhealthy.tsx                  |  3 ++-
+ frontend/src/modules/BasePath.ts                       | 10 ++++++++++
+ frontend/src/pages/Login/index.tsx                     |  3 ++-
+ frontend/src/pages/Setup/index.tsx                     |  3 ++-
+ frontend/vite.config.ts                                |  3 +++
+ 12 files changed, 40 insertions(+), 9 deletions(-)
+
+diff --git a/docker/rootfs/etc/nginx/conf.d/production.conf.template b/docker/rootfs/etc/nginx/conf.d/production.conf.template
+index 452609b..5568303 100644
+--- a/docker/rootfs/etc/nginx/conf.d/production.conf.template
++++ b/docker/rootfs/etc/nginx/conf.d/production.conf.template
+@@ -23,6 +23,14 @@ server {
+ 		proxy_send_timeout 15m;
+ 	}
+ 
++	# The interface loads its files relative to the page, so that it also works
++	# under the Home Assistant ingress path. A page opened at a nested route
++	# therefore asks for e.g. /nginx/assets/index.js; serve those files from
++	# the top level.
++	location ~ ^/(?!api/).+?/((?:assets|images)/.+)$ {
++		try_files /$1 =404;
++	}
++
+ 	location / {
+ 		index index.html;
+ 		if ($request_uri ~ ^/(.*)\.html$) {
+diff --git a/frontend/index.html b/frontend/index.html
+index 08c7609..1256b5a 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -5,6 +5,7 @@
+ 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+ 		<title>Nginx Proxy Manager</title>
+ 		<meta name="description" content="Manage Nginx hosts with a simple, powerful interface" />
++		<meta name="ingress-path" content="" />
+ 		<link rel="preload" href="/images/logo-no-text.svg" as="image" type="image/svg+xml" fetchPriority="high">
+ 		<link
+ 			rel="apple-touch-icon"
+diff --git a/frontend/src/Router.tsx b/frontend/src/Router.tsx
+index dc75565..38486ae 100644
+--- a/frontend/src/Router.tsx
++++ b/frontend/src/Router.tsx
+@@ -12,6 +12,7 @@ import {
+ } from "src/components";
+ import { useAuthState } from "src/context";
+ import { useHealth } from "src/hooks";
++import { basePath } from "src/modules/BasePath";
+ 
+ const Setup = lazy(() => import("src/pages/Setup"));
+ const Login = lazy(() => import("src/pages/Login"));
+@@ -52,7 +53,7 @@ function Router() {
+ 	}
+ 
+ 	return (
+-		<BrowserRouter>
++		<BrowserRouter basename={basePath || "/"}>
+ 			<Page>
+ 				<div>
+ 					<SiteHeader />
+diff --git a/frontend/src/api/backend/base.ts b/frontend/src/api/backend/base.ts
+index d56f120..cf99a33 100644
+--- a/frontend/src/api/backend/base.ts
++++ b/frontend/src/api/backend/base.ts
+@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
+ import { camelizeKeys, decamelize, decamelizeKeys } from "humps";
+ import queryString, { type StringifiableRecord } from "query-string";
+ import AuthStore from "src/modules/AuthStore";
++import { basePath } from "src/modules/BasePath";
+ 
+ const queryClient = new QueryClient();
+ const contentTypeHeader = "Content-Type";
+@@ -25,7 +26,7 @@ function decamelizeParams(params?: StringifiableRecord): StringifiableRecord | u
+ 
+ function buildUrl({ url, params }: BuildUrlArgs) {
+ 	const endpoint = url.replace(/^\/|\/$/g, "");
+-	const baseUrl = `/api/${endpoint}`;
++	const baseUrl = `${basePath}/api/${endpoint}`;
+ 	const apiUrl = queryString.stringifyUrl({
+ 		url: baseUrl,
+ 		query: decamelizeParams(params),
+diff --git a/frontend/src/components/Loading.tsx b/frontend/src/components/Loading.tsx
+index 14d96e6..e86e6b3 100644
+--- a/frontend/src/components/Loading.tsx
++++ b/frontend/src/components/Loading.tsx
+@@ -1,5 +1,6 @@
+ import type { ReactNode } from "react";
+ import { T } from "src/locale";
++import { withBasePath } from "src/modules/BasePath";
+ import styles from "./Loading.module.css";
+ 
+ interface Props {
+@@ -11,7 +12,7 @@ export function Loading({ label, noLogo }: Props) {
+ 		<div className="empty text-center">
+ 			{noLogo ? null : (
+ 				<div className="mb-3">
+-					<img className={styles.logo} src="/images/logo-no-text.svg" alt="" />
++					<img className={styles.logo} src={withBasePath("/images/logo-no-text.svg")} alt="" />
+ 				</div>
+ 			)}
+ 			<div className="text-secondary mb-3">{label || <T id="loading" />}</div>
+diff --git a/frontend/src/components/SiteHeader.tsx b/frontend/src/components/SiteHeader.tsx
+index bf28640..77879c6 100644
+--- a/frontend/src/components/SiteHeader.tsx
++++ b/frontend/src/components/SiteHeader.tsx
+@@ -4,6 +4,7 @@ import { useAuthState } from "src/context";
+ import { useUser } from "src/hooks";
+ import { T } from "src/locale";
+ import { showChangePasswordModal, showTwoFactorModal, showUserModal } from "src/modals";
++import { withBasePath } from "src/modules/BasePath";
+ import styles from "./SiteHeader.module.css";
+ 
+ export function SiteHeader() {
+@@ -29,7 +30,7 @@ export function SiteHeader() {
+ 					<NavLink to="/">
+ 						<div className={styles.logo}>
+ 							<img
+-								src="/images/logo-no-text.svg"
++								src={withBasePath("/images/logo-no-text.svg")}
+ 								width={40}
+ 								height={40}
+ 								className="navbar-brand-image"
+@@ -59,7 +60,7 @@ export function SiteHeader() {
+ 								<span
+ 									className="avatar avatar-sm"
+ 									style={{
+-										backgroundImage: `url(${currentUser?.avatar || "/images/default-avatar.jpg"})`,
++										backgroundImage: `url(${currentUser?.avatar || withBasePath("/images/default-avatar.jpg")})`,
+ 									}}
+ 								/>
+ 								<div className="d-none d-xl-block ps-2">
+diff --git a/frontend/src/components/Table/Formatter/GravatarFormatter.tsx b/frontend/src/components/Table/Formatter/GravatarFormatter.tsx
+index 58b820b..0eb3e01 100644
+--- a/frontend/src/components/Table/Formatter/GravatarFormatter.tsx
++++ b/frontend/src/components/Table/Formatter/GravatarFormatter.tsx
+@@ -1,4 +1,6 @@
+-const defaultImg = "/images/default-avatar.jpg";
++import { withBasePath } from "src/modules/BasePath";
++
++const defaultImg = withBasePath("/images/default-avatar.jpg");
+ 
+ interface Props {
+ 	url?: string;
+diff --git a/frontend/src/components/Unhealthy.tsx b/frontend/src/components/Unhealthy.tsx
+index d4b6e33..44f1dbc 100644
+--- a/frontend/src/components/Unhealthy.tsx
++++ b/frontend/src/components/Unhealthy.tsx
+@@ -1,4 +1,5 @@
+ import { Page } from "src/components";
++import { withBasePath } from "src/modules/BasePath";
+ 
+ export function Unhealthy() {
+ 	return (
+@@ -6,7 +7,7 @@ export function Unhealthy() {
+ 			<div className="container-tight py-4">
+ 				<div className="empty">
+ 					<div className="empty-img">
+-						<img src="/images/unhealthy.svg" alt="" />
++						<img src={withBasePath("/images/unhealthy.svg")} alt="" />
+ 					</div>
+ 					<p className="empty-title">The API is not healthy.</p>
+ 					<p className="empty-subtitle text-secondary">We'll keep checking and hope to be back soon!</p>
+diff --git a/frontend/src/modules/BasePath.ts b/frontend/src/modules/BasePath.ts
+new file mode 100644
+index 0000000..b66a44d
+--- /dev/null
++++ b/frontend/src/modules/BasePath.ts
+@@ -0,0 +1,10 @@
++// Path prefix the interface is served under. It is empty when the interface
++// is served at the root of its own port, and the Home Assistant ingress path
++// (/api/hassio_ingress/<token>) when it is opened from the sidebar. The add-on's
++// ingress server writes that path into index.html.
++export const basePath = (
++	document.querySelector<HTMLMetaElement>('meta[name="ingress-path"]')?.content ?? ""
++).replace(/\/+$/, "");
++
++// Prefix an absolute path, such as /images/logo.svg, with the base path
++export const withBasePath = (path: string) => `${basePath}${path}`;
+diff --git a/frontend/src/pages/Login/index.tsx b/frontend/src/pages/Login/index.tsx
+index d65b2dc..b341416 100644
+--- a/frontend/src/pages/Login/index.tsx
++++ b/frontend/src/pages/Login/index.tsx
+@@ -5,6 +5,7 @@ import { Button, LocalePicker, Page, ThemeSwitcher } from "src/components";
+ import { useAuthState } from "src/context";
+ import { useHealth } from "src/hooks";
+ import { intl, T } from "src/locale";
++import { withBasePath } from "src/modules/BasePath";
+ import { validateEmail, validateString } from "src/modules/Validations";
+ import styles from "./index.module.css";
+ 
+@@ -184,7 +185,7 @@ export default function Login() {
+ 				<div className="d-flex justify-content-between align-items-center mb-4 ps-4 pe-3">
+ 					<img
+ 						className={styles.logo}
+-						src="/images/logo-text-horizontal-grey.png"
++						src={withBasePath("/images/logo-text-horizontal-grey.png")}
+ 						alt="Nginx Proxy Manager"
+ 					/>
+ 					<div className="d-flex align-items-center gap-1">
+diff --git a/frontend/src/pages/Setup/index.tsx b/frontend/src/pages/Setup/index.tsx
+index 4becf5f..260581f 100644
+--- a/frontend/src/pages/Setup/index.tsx
++++ b/frontend/src/pages/Setup/index.tsx
+@@ -7,6 +7,7 @@ import { createUser } from "src/api/backend";
+ import { Button, LocalePicker, Page, ThemeSwitcher } from "src/components";
+ import { useAuthState } from "src/context";
+ import { intl, T } from "src/locale";
++import { withBasePath } from "src/modules/BasePath";
+ import { validateEmail, validateString } from "src/modules/Validations";
+ import styles from "./index.module.css";
+ 
+@@ -68,7 +69,7 @@ export default function Setup() {
+ 				<div className="text-center mb-4">
+ 					<img
+ 						className={styles.logo}
+-						src="/images/logo-text-horizontal-grey.png"
++						src={withBasePath("/images/logo-text-horizontal-grey.png")}
+ 						alt="Nginx Proxy Manager"
+ 					/>
+ 				</div>
+diff --git a/frontend/vite.config.ts b/frontend/vite.config.ts
+index 1e00d06..a02b907 100644
+--- a/frontend/vite.config.ts
++++ b/frontend/vite.config.ts
+@@ -21,6 +21,9 @@ const runLocaleScripts = () => {
+ 
+ // https://vitejs.dev/config/
+ export default defineConfig({
++	// Reference the built files relative to the page, so the interface
++	// also works under the Home Assistant ingress path.
++	base: "./",
+ 	plugins: [
+ 		{
+ 			name: 'run-on-start',

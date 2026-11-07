@@ -2,6 +2,27 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.1.0 (2026-11-07)
+
+### ✨ New
+
+- **Home Assistant ingress: the interface can now be shown in the sidebar.**
+  Turn on "Show in sidebar" on the add-on page; the interface then opens inside
+  Home Assistant, which also works over HTTPS and remote access, with no
+  separate port needed. The admin port `81` keeps working as before.
+  - New patch `0004-Patch-support-Home-Assistant-ingress`: the Nginx Proxy
+    Manager frontend no longer assumes it is served at `/`. It builds with a
+    relative base and reads its path prefix at runtime from an `ingress-path`
+    meta tag; the API client, the router and the image paths use it.
+  - New `rootfs/etc/nginx/conf.d/ingress.conf`: an nginx server on the ingress
+    port `8099`, reachable only by the Supervisor, that serves the interface
+    and fills the meta tag from the `X-Ingress-Path` header.
+  - `config.yaml`: `ingress: true`, `ingress_port: 8099`, `panel_icon: mdi:web`.
+    The `webui` link is replaced by ingress ("Open Web UI" now opens it there).
+
+Upstream declined ingress support (hassio-addons/app-nginx-proxy-manager#649),
+so this is a fork-only feature.
+
 ## 4.0.1 (2026-11-05)
 
 ### ⬆️ Upgrades
