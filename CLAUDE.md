@@ -101,6 +101,8 @@ builds the image locally for that machine's arch.
   `app_config` map mounts data at `/config` as before.
 - **`4.0.1` is hardware-verified and released (2026-11-06):** certbot 5.9.0 +
   debian-base 9.5.2 (caught up to upstream HEAD); built/ran clean on aarch64.
+- **`4.1.0` is hardware-verified (2026-11-07):** Home Assistant ingress works on
+  aarch64 — the interface opens from the sidebar, and port 81 keeps working.
 
 ## Repo / git
 
@@ -145,6 +147,16 @@ builds the image locally for that machine's arch.
     string must match `index.html`).
   - `config.yaml` `ingress: true`, `ingress_port: 8099`, `panel_icon`; no
     `webui`.
+  - **Keep ingress on its own port; do not fold it into port 81.** Port 81 is
+    open to the LAN, so it must not trust a client-supplied `X-Ingress-Path`
+    (it is written into the page); 8099 only accepts the Supervisor. Port 81's
+    upstream template also has absolute redirects (`/api` → `/api/`,
+    `*.html` → `/$1`) that would escape to Home Assistant's root under ingress,
+    and merging would need `if` logic inside NPM's template, growing patch
+    0004. 8099 is not in `ports:`, so it is never exposed on the host.
+  - The sidebar and port 81 keep **separate logins**: NPM stores its JWT in
+    `localStorage` (`authentications`), which browsers isolate per origin, and
+    the sidebar runs under Home Assistant's origin. Expected, not a bug.
   - Verify a patch change by building the frontend outside Docker:
     `git apply` patches 0001–0004 in order onto a clean NPM checkout, then
     `yarn install --frozen-lockfile --ignore-scripts && yarn locale-compile &&
