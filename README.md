@@ -34,6 +34,8 @@ Home Assistant custom repository so it can be installed on its own.
 - **Sidebar support (v4.1.0+)**: the interface works through Home Assistant
   ingress, so it can be shown in the sidebar ("Show in sidebar" on the add-on
   page). The admin port `81` still works as before.
+- **API tokens (v4.2.0+)**: create longer-lived API tokens (1 day to 3 years)
+  for scripts from the user menu → "API Tokens".
 - Verified on real **aarch64** hardware running Home Assistant OS.
 
 To install, add this repository's URL under

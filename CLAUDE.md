@@ -58,7 +58,7 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   `ARG NGINX_PROXY_MANAGER_VERSION` pins the upstream *application*
   (`NginxProxyManager/nginx-proxy-manager` GitHub release); `config.yaml`
   `version:` is the add-on wrapper. Bumping the app is the **highest-risk** change
-  (the 4 `patches/*.patch` are written against a specific NPM version and the
+  (the 5 `patches/*.patch` are written against a specific NPM version and the
   Vite build may shift). Process: bump the ARG → build → fix any failing patch
   → verify on hardware. The simplest safe path for a big app jump is to re-sync
   from upstream `hassio-addons/addon-nginx-proxy-manager` (see below).
@@ -66,8 +66,8 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
 - **Prefer re-syncing from upstream over hand-porting.** Upstream does the hard
   work (frontend rewrites, patch maintenance, dep pins). When catching up, copy
   upstream's `proxy-manager/{Dockerfile,patches,rootfs,translations,.README.j2,DOCS.md}`
-  wholesale — **except keep the fork's own `patches/0004-*` and
-  `rootfs/etc/nginx/conf.d/ingress.conf`** — then re-apply the fork specifics
+  wholesale — **except keep the fork's own `patches/0004-*`, `patches/0005-*`
+  and `rootfs/etc/nginx/conf.d/ingress.conf`** — then re-apply the fork specifics
   below. That is exactly how v4.0.0
   was produced.
 
@@ -158,10 +158,35 @@ builds the image locally for that machine's arch.
     `localStorage` (`authentications`), which browsers isolate per origin, and
     the sidebar runs under Home Assistant's origin. Expected, not a bug.
   - Verify a patch change by building the frontend outside Docker:
-    `git apply` patches 0001–0004 in order onto a clean NPM checkout, then
+    `git apply` patches 0001–0005 in order onto a clean NPM checkout, then
     `yarn install --frozen-lockfile --ignore-scripts && yarn locale-compile &&
     yarn build` in `frontend/`, and check `dist/index.html` and the bundles for
     leftover absolute `/assets/`, `/api/` or `/images/` paths.
+- **API tokens in the user menu, since v4.2.0** —
+  `patches/0005-Patch-add-API-tokens-to-the-user-menu.patch` (applies on top of
+  0004; both touch `SiteHeader.tsx`). A user re-enters their password (+ 2FA
+  code) and gets a token with an `expiry` from the allowlist `1d 7d 30d 90d 1y
+  2y 3y` (enum in `schema/paths/tokens/post.json` and `tokens/2fa/post.json`).
+  Design decisions to keep:
+  - **No database table or migration, on purpose.** NPM runs knex
+    `migrate.latest()` with list validation, so a fork-only migration could
+    never be removed again (NPM refuses to start). Revocation relies on the
+    existing per-request checks instead: a password change voids older tokens,
+    disabling the user voids all. This keeps 0005 droppable if upstream ships
+    real tokens (NginxProxyManager/nginx-proxy-manager#5975).
+  - **User menu, not Settings:** Settings is admin-only, but scripts should use
+    a dedicated non-admin user.
+  - **`GET /tokens` ignores `?expiry=`** (upstream allowed any lifetime from a
+    session token, bypassing the password check). Refresh = default 1 day.
+  - **English strings only** (`locale/src/en.json`); other locales fall back to
+    English via `loadMessages`, and the repo carries no Chinese text.
+  - Pitfall: `formatDateTime()` treats any number as Unix *seconds*; pass the
+    backend's ISO `expires` string, never `getTime()`.
+  - Verify backend changes without Docker: in `backend/`, `yarn install
+    --ignore-scripts`, then `node validate-schema.js` (whole OpenAPI doc) and a
+    small script that awaits `getCompiledSchema()` before calling
+    `apiValidator(getValidationSchema("/tokens", "post"), body)` for accepted
+    and rejected `expiry` values.
 - Fork meta not present upstream: `CLAUDE.md`, `.gitignore`, root `README.md`
   "Supported architectures" note, `proxy-manager/CHANGELOG.md`.
 

@@ -1,0 +1,454 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: raphael1688 <schuey@gmail.com>
+Date: Sun, 08 Nov 2026 08:18:20 +0800
+Subject: [PATCH] Patch add API tokens to the user menu
+
+A token from logging in lasts one day, which makes scripts log in on
+every run. Add "API Tokens" to the user menu: confirm your password
+(and two-factor code, when enabled), pick a lifetime from 1 day to
+3 years, and get a token that is shown once with a copy button.
+
+  - POST /tokens and POST /tokens/2fa take an optional expiry, limited
+    to 1d, 7d, 30d, 90d, 1y, 2y and 3y. Without one, logins still get
+    the default day, so the login page is unchanged.
+
+  - GET /tokens no longer honours ?expiry=. It let any session token be
+    swapped for one of any length without the password, which would
+    make the password check above pointless. Nothing in the app sent
+    it; a refresh now always lasts the default day.
+
+  - Tokens are not stored, so there is no list to revoke from. The
+    existing per-request checks still apply: changing the password
+    ends every token issued before it, and disabling or deleting the
+    user ends all of its tokens.
+
+  - It lives in the user menu rather than Settings because Settings is
+    admin only, while the advice is to give scripts a dedicated user
+    with only the permissions they need.
+
+  - The Clipboard API is missing on plain http origins, which is how
+    the admin port is usually reached, so copying falls back to the
+    selection.
+---
+ backend/routes/tokens.js                  |   8 +-
+ backend/schema/paths/tokens/2fa/post.json |   6 +
+ backend/schema/paths/tokens/post.json     |   6 +
+ frontend/src/api/backend/getToken.ts      |   8 +-
+ frontend/src/components/SiteHeader.tsx    |  15 +-
+ frontend/src/locale/src/en.json           |  51 ++++++
+ frontend/src/modals/ApiTokenModal.tsx     | 208 ++++++++++++++++++++++
+ frontend/src/modals/index.ts              |   1 +
+ 8 files changed, 294 insertions(+), 9 deletions(-)
+
+diff --git a/backend/routes/tokens.js b/backend/routes/tokens.js
+index 8a6a1bc..0989cf3 100644
+--- a/backend/routes/tokens.js
++++ b/backend/routes/tokens.js
+@@ -27,7 +27,9 @@ router
+ 	.get(jwtdecode(), async (req, res, next) => {
+ 		try {
+ 			const data = await internalToken.getFreshToken(res.locals.access, {
+-				expiry: typeof req.query.expiry !== "undefined" ? req.query.expiry : null,
++				// A refresh always lasts the default day. A longer token needs the
++				// password (POST /tokens), so a stolen session can't mint one.
++				expiry: null,
+ 				scope: typeof req.query.scope !== "undefined" ? req.query.scope : null,
+ 			});
+ 			res.status(200).send(data);
+@@ -66,8 +68,8 @@ router
+ 	 */
+ 	.post(async (req, res, next) => {
+ 		try {
+-			const { challenge_token, code } = await apiValidator(getValidationSchema("/tokens/2fa", "post"), req.body);
+-			const result = await internalToken.verify2FA(challenge_token, code);
++			const { challenge_token, code, expiry } = await apiValidator(getValidationSchema("/tokens/2fa", "post"), req.body);
++			const result = await internalToken.verify2FA(challenge_token, code, expiry);
+ 			res.status(200).send(result);
+ 		} catch (err) {
+ 			debug(logger, `${req.method.toUpperCase()} ${req.path}: ${err}`);
+diff --git a/backend/schema/paths/tokens/2fa/post.json b/backend/schema/paths/tokens/2fa/post.json
+index c37af8d..bfe093a 100644
+--- a/backend/schema/paths/tokens/2fa/post.json
++++ b/backend/schema/paths/tokens/2fa/post.json
+@@ -20,6 +20,12 @@
+ 							"maxLength": 8,
+ 							"type": "string",
+ 							"example": "012345"
++						},
++						"expiry": {
++							"description": "How long the token stays valid. Defaults to 1d.",
++							"type": "string",
++							"enum": ["1d", "7d", "30d", "90d", "1y", "2y", "3y"],
++							"example": "30d"
+ 						}
+ 					},
+ 					"required": ["challenge_token", "code"],
+diff --git a/backend/schema/paths/tokens/post.json b/backend/schema/paths/tokens/post.json
+index 470be30..2832d04 100644
+--- a/backend/schema/paths/tokens/post.json
++++ b/backend/schema/paths/tokens/post.json
+@@ -10,6 +10,12 @@
+ 				"schema": {
+ 					"additionalProperties": false,
+ 					"properties": {
++						"expiry": {
++							"description": "How long the token stays valid. Defaults to 1d.",
++							"type": "string",
++							"enum": ["1d", "7d", "30d", "90d", "1y", "2y", "3y"],
++							"example": "30d"
++						},
+ 						"identity": {
+ 							"minLength": 1,
+ 							"type": "string",
+diff --git a/frontend/src/api/backend/getToken.ts b/frontend/src/api/backend/getToken.ts
+index 7f62a0e..53c5883 100644
+--- a/frontend/src/api/backend/getToken.ts
++++ b/frontend/src/api/backend/getToken.ts
+@@ -7,16 +7,16 @@ export function isTwoFactorChallenge(response: LoginResponse): response is TwoFa
+ 	return "requires2fa" in response && response.requires2fa === true;
+ }
+ 
+-export async function getToken(identity: string, secret: string): Promise<LoginResponse> {
++export async function getToken(identity: string, secret: string, expiry?: string): Promise<LoginResponse> {
+ 	return await api.post({
+ 		url: "/tokens",
+-		data: { identity, secret },
++		data: { identity, secret, expiry },
+ 	});
+ }
+ 
+-export async function verify2FA(challengeToken: string, code: string): Promise<TokenResponse> {
++export async function verify2FA(challengeToken: string, code: string, expiry?: string): Promise<TokenResponse> {
+ 	return await api.post({
+ 		url: "/tokens/2fa",
+-		data: { challengeToken, code },
++		data: { challengeToken, code, expiry },
+ 	});
+ }
+diff --git a/frontend/src/components/SiteHeader.tsx b/frontend/src/components/SiteHeader.tsx
+index 77879c6..c71720f 100644
+--- a/frontend/src/components/SiteHeader.tsx
++++ b/frontend/src/components/SiteHeader.tsx
+@@ -1,9 +1,9 @@
+-import { IconLock, IconLogout, IconShieldLock, IconUser } from "@tabler/icons-react";
++import { IconKey, IconLock, IconLogout, IconShieldLock, IconUser } from "@tabler/icons-react";
+ import { LocalePicker, NavLink, ThemeSwitcher } from "src/components";
+ import { useAuthState } from "src/context";
+ import { useUser } from "src/hooks";
+ import { T } from "src/locale";
+-import { showChangePasswordModal, showTwoFactorModal, showUserModal } from "src/modals";
++import { showApiTokenModal, showChangePasswordModal, showTwoFactorModal, showUserModal } from "src/modals";
+ import { withBasePath } from "src/modules/BasePath";
+ import styles from "./SiteHeader.module.css";
+ 
+@@ -123,6 +123,17 @@ export function SiteHeader() {
+ 									<IconShieldLock width={18} />
+ 									<T id="user.two-factor" />
+ 								</a>
++								<a
++									href="?"
++									className="dropdown-item"
++									onClick={(e) => {
++										e.preventDefault();
++										showApiTokenModal();
++									}}
++								>
++									<IconKey width={18} />
++									<T id="user.api-tokens" />
++								</a>
+ 								<div className="dropdown-divider" />
+ 								<a
+ 									href="?"
+diff --git a/frontend/src/locale/src/en.json b/frontend/src/locale/src/en.json
+index 11d09ea..041e3c5 100644
+--- a/frontend/src/locale/src/en.json
++++ b/frontend/src/locale/src/en.json
+@@ -143,6 +143,54 @@
+ 	"action.view-details": {
+ 		"defaultMessage": "View Details"
+ 	},
++	"api-token.copied": {
++		"defaultMessage": "Copied"
++	},
++	"api-token.copy": {
++		"defaultMessage": "Copy"
++	},
++	"api-token.copy-manually": {
++		"defaultMessage": "Select the token and copy it manually"
++	},
++	"api-token.copy-now": {
++		"defaultMessage": "Copy this token now. It isn't stored anywhere, so it can't be shown again."
++	},
++	"api-token.description": {
++		"defaultMessage": "A token acts as your account, with your permissions. For scripts, create a dedicated user that only has the permissions it needs."
++	},
++	"api-token.done": {
++		"defaultMessage": "Done"
++	},
++	"api-token.expires-after": {
++		"defaultMessage": "Expires After"
++	},
++	"api-token.expiry.1d": {
++		"defaultMessage": "1 day"
++	},
++	"api-token.expiry.1y": {
++		"defaultMessage": "1 year"
++	},
++	"api-token.expiry.2y": {
++		"defaultMessage": "2 years"
++	},
++	"api-token.expiry.30d": {
++		"defaultMessage": "30 days"
++	},
++	"api-token.expiry.3y": {
++		"defaultMessage": "3 years"
++	},
++	"api-token.expiry.7d": {
++		"defaultMessage": "7 days"
++	},
++	"api-token.expiry.90d": {
++		"defaultMessage": "90 days"
++	},
++	"api-token.generate": {
++		"defaultMessage": "Generate Token"
++	},
++	"api-token.revoke": {
++		"defaultMessage": "Tokens aren't stored, so they can't be listed or revoked one by one. Changing your password ends every token issued before it, and disabling the user ends all of its tokens."
++	},
+ 	"auditlogs": {
+ 		"defaultMessage": "Audit Logs"
+ 	},
+@@ -791,6 +839,9 @@
+ 	"user": {
+ 		"defaultMessage": "User"
+ 	},
++	"user.api-tokens": {
++		"defaultMessage": "API Tokens"
++	},
+ 	"user.change-password": {
+ 		"defaultMessage": "Change Password"
+ 	},
+diff --git a/frontend/src/modals/ApiTokenModal.tsx b/frontend/src/modals/ApiTokenModal.tsx
+new file mode 100644
+index 0000000..8f55edd
+--- /dev/null
++++ b/frontend/src/modals/ApiTokenModal.tsx
+@@ -0,0 +1,208 @@
++import EasyModal, { type InnerModalProps } from "ez-modal-react";
++import { type FormEvent, type ReactNode, useRef, useState } from "react";
++import { Alert } from "react-bootstrap";
++import Modal from "react-bootstrap/Modal";
++import { getToken, isTwoFactorChallenge, type TokenResponse, verify2FA } from "src/api/backend";
++import { Button } from "src/components";
++import { useLocaleState } from "src/context";
++import { useUser } from "src/hooks";
++import { formatDateTime, intl, T } from "src/locale";
++
++// The lifetimes the backend accepts for a token requested with a password
++const EXPIRY_OPTIONS = ["1d", "7d", "30d", "90d", "1y", "2y", "3y"];
++
++const showApiTokenModal = () => {
++	EasyModal.show(ApiTokenModal);
++};
++
++// The Clipboard API only exists on secure origins, and the admin interface is
++// usually served over plain http, so fall back to copying the selection.
++const copyText = async (field: HTMLTextAreaElement): Promise<boolean> => {
++	if (navigator.clipboard) {
++		try {
++			await navigator.clipboard.writeText(field.value);
++			return true;
++		} catch {
++			// Fall through to the selection
++		}
++	}
++	field.select();
++	return document.execCommand("copy");
++};
++
++const ApiTokenModal = EasyModal.create(({ visible, remove }: InnerModalProps) => {
++	const { data: currentUser } = useUser("me");
++	const { locale } = useLocaleState();
++	const [password, setPassword] = useState("");
++	const [code, setCode] = useState("");
++	const [expiry, setExpiry] = useState("30d");
++	const [challengeToken, setChallengeToken] = useState<string | null>(null);
++	const [result, setResult] = useState<TokenResponse | null>(null);
++	const [copied, setCopied] = useState<boolean | null>(null);
++	const [error, setError] = useState<ReactNode | null>(null);
++	const [isSubmitting, setIsSubmitting] = useState(false);
++	const tokenField = useRef<HTMLTextAreaElement>(null);
++
++	const onSubmit = async (e: FormEvent) => {
++		e.preventDefault();
++		if (isSubmitting || !currentUser) return;
++		setIsSubmitting(true);
++		setError(null);
++
++		try {
++			if (challengeToken) {
++				setResult(await verify2FA(challengeToken, code, expiry));
++			} else {
++				const response = await getToken(currentUser.email, password, expiry);
++				if (isTwoFactorChallenge(response)) {
++					setChallengeToken(response.challengeToken);
++				} else {
++					setResult(response);
++				}
++			}
++			setPassword("");
++		} catch (err: any) {
++			setError(<T id={err.message} />);
++		}
++		setIsSubmitting(false);
++	};
++
++	const onCopy = async () => {
++		if (tokenField.current) {
++			setCopied(await copyText(tokenField.current));
++		}
++	};
++
++	return (
++		<Modal show={visible} onHide={remove}>
++			<form onSubmit={onSubmit}>
++				<Modal.Header closeButton>
++					<Modal.Title>
++						<T id="user.api-tokens" />
++					</Modal.Title>
++				</Modal.Header>
++				<Modal.Body>
++					<Alert variant="danger" show={!!error} onClose={() => setError(null)} dismissible>
++						{error}
++					</Alert>
++					{result ? (
++						<>
++							<Alert variant="warning">
++								<T id="api-token.copy-now" />
++							</Alert>
++							<textarea
++								ref={tokenField}
++								className="form-control font-monospace"
++								rows={5}
++								value={result.token}
++								readOnly
++							/>
++							<div className="d-flex align-items-center mt-2">
++								<span className="text-secondary">
++									<T
++										id="expires.on"
++										data={{ date: formatDateTime(result.expires, locale) }}
++									/>
++								</span>
++								<Button className="ms-auto" onClick={onCopy}>
++									<T id="api-token.copy" />
++								</Button>
++							</div>
++							{copied === null ? null : (
++								<div className="small text-secondary mt-2">
++									<T id={copied ? "api-token.copied" : "api-token.copy-manually"} />
++								</div>
++							)}
++						</>
++					) : (
++						<>
++							<p className="text-secondary">
++								<T id="api-token.description" />
++							</p>
++							{challengeToken ? (
++								<div className="mb-3">
++									<label className="form-label" htmlFor="api-token-code">
++										<T id="login.2fa-code" />
++									</label>
++									<input
++										id="api-token-code"
++										className="form-control"
++										autoComplete="one-time-code"
++										inputMode="numeric"
++										required
++										minLength={6}
++										maxLength={8}
++										placeholder={intl.formatMessage({ id: "login.2fa-code-placeholder" })}
++										value={code}
++										onChange={(e) => setCode(e.target.value)}
++									/>
++								</div>
++							) : (
++								<>
++									<div className="mb-3">
++										<label className="form-label" htmlFor="api-token-password">
++											<T id="user.current-password" />
++										</label>
++										<input
++											id="api-token-password"
++											type="password"
++											className="form-control"
++											autoComplete="current-password"
++											required
++											value={password}
++											onChange={(e) => setPassword(e.target.value)}
++										/>
++									</div>
++									<div className="mb-3">
++										<label className="form-label" htmlFor="api-token-expiry">
++											<T id="api-token.expires-after" />
++										</label>
++										<select
++											id="api-token-expiry"
++											className="form-select"
++											value={expiry}
++											onChange={(e) => setExpiry(e.target.value)}
++										>
++											{EXPIRY_OPTIONS.map((option) => (
++												<option key={option} value={option}>
++													{intl.formatMessage({ id: `api-token.expiry.${option}` })}
++												</option>
++											))}
++										</select>
++									</div>
++								</>
++							)}
++							<p className="small text-secondary mb-0">
++								<T id="api-token.revoke" />
++							</p>
++						</>
++					)}
++				</Modal.Body>
++				<Modal.Footer>
++					{result ? (
++						<Button actionType="primary" className="ms-auto" onClick={remove}>
++							<T id="api-token.done" />
++						</Button>
++					) : (
++						<>
++							<Button onClick={remove} disabled={isSubmitting}>
++								<T id="cancel" />
++							</Button>
++							<Button
++								type="submit"
++								actionType="primary"
++								className="ms-auto"
++								isLoading={isSubmitting}
++								disabled={isSubmitting || !currentUser}
++							>
++								<T id={challengeToken ? "login.2fa-verify" : "api-token.generate"} />
++							</Button>
++						</>
++					)}
++				</Modal.Footer>
++			</form>
++		</Modal>
++	);
++});
++
++export { showApiTokenModal };
+diff --git a/frontend/src/modals/index.ts b/frontend/src/modals/index.ts
+index 902d0d7..7768fc5 100644
+--- a/frontend/src/modals/index.ts
++++ b/frontend/src/modals/index.ts
+@@ -1,4 +1,5 @@
+ export * from "./AccessListModal";
++export * from "./ApiTokenModal";
+ export * from "./ChangePasswordModal";
+ export * from "./CustomCertificateModal";
+ export * from "./DeadHostModal";

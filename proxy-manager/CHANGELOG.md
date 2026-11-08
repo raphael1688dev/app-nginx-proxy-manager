@@ -2,6 +2,35 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.2.0 (2026-11-08)
+
+### ✨ New
+
+- **API tokens in the user menu.** Open the user menu → "API Tokens", confirm
+  your password (and two-factor code, when enabled), choose how long the token
+  lasts (1 day to 3 years), and copy the token, which is shown once. Scripts
+  send it as `Authorization: Bearer <token>`.
+  - New patch `0005-Patch-add-API-tokens-to-the-user-menu`: `POST /api/tokens`
+    and `POST /api/tokens/2fa` accept an optional `expiry` (`1d`, `7d`, `30d`,
+    `90d`, `1y`, `2y`, `3y`). Logins without it still last 1 day.
+  - Tokens aren't stored, so they can't be listed or revoked one by one.
+    Changing the user's password ends every token issued before it, and
+    disabling the user ends all of its tokens. Give scripts a dedicated user
+    that only has the permissions they need.
+  - A 2- or 3-year token can expire a few hours before the displayed time:
+    upstream computes the token's expiry and the displayed date slightly
+    differently.
+
+### 🔒 Security
+
+- `GET /api/tokens` (token refresh) no longer accepts `?expiry=`. Upstream let
+  any logged-in session swap its token for one of any lifetime without the
+  password. A refresh now always lasts 1 day; longer tokens need the password.
+
+Upstream has an open proposal for fuller, stored and revocable tokens
+(NginxProxyManager/nginx-proxy-manager#5975); this fork-only version adds no
+database changes, so it can be dropped cleanly if upstream ships one.
+
 ## 4.1.0 (2026-11-07)
 
 ### ✨ New
