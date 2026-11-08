@@ -103,6 +103,10 @@ builds the image locally for that machine's arch.
   debian-base 9.5.2 (caught up to upstream HEAD); built/ran clean on aarch64.
 - **`4.1.0` is hardware-verified (2026-11-07):** Home Assistant ingress works on
   aarch64 — the interface opens from the sidebar, and port 81 keeps working.
+- **`4.2.0` is hardware-verified (2026-11-08):** API tokens work on aarch64 —
+  a 30-day token from the user menu authenticates `curl` calls to port 81
+  (`/api/users/me`, `/api/reports/hosts`, `/api/logs/tail`, ...), a wrong password
+  shows an error without logging out, and login/logout and the sidebar still work.
 
 ## Repo / git
 
