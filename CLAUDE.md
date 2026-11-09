@@ -117,6 +117,10 @@ builds the image locally for that machine's arch.
   a 30-day token from the user menu authenticates `curl` calls to port 81
   (`/api/users/me`, `/api/reports/hosts`, `/api/logs/tail`, ...), a wrong password
   shows an error without logging out, and login/logout and the sidebar still work.
+- **`4.2.1` is hardware-verified (2026-11-09):** Node.js 22.23.4 +
+  apache2-utils 2.4.69 built and ran clean on aarch64 (HA OS 18.5.rc1, HA Core
+  2026.11.0); `node --version` in the container is `v22.23.4`, API tokens still
+  authenticate, and port 81 and the sidebar work.
 
 ## Repo / git
 
