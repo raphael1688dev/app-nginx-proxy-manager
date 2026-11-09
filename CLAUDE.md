@@ -71,6 +71,16 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   below. That is exactly how v4.0.0
   was produced.
 
+- **Check versions beyond upstream, too.** Upstream's Renovate can lag (it
+  missed the Node.js 22.23.4 security release for weeks), so the fork may pin
+  newer packages than upstream (since v4.2.1: `nodejs`, `apache2-utils`). On a
+  re-sync, keep whichever pin is newer. Quick check: NodeSource
+  `https://deb.nodesource.com/node_22.x/dists/nodistro/main/binary-arm64/Packages`;
+  Debian `deb.debian.org/debian/dists/trixie{,-updates}` plus
+  `security.debian.org/debian-security/dists/trixie-security`
+  (`main/binary-arm64/Packages.xz`). A superseded Debian pin usually stays
+  downloadable from the point release, so a stale pin rarely breaks the build.
+
 ## Versioning & releases
 
 - `config.yaml` `version:` holds the add-on version (semver). Breaking changes
@@ -191,6 +201,21 @@ builds the image locally for that machine's arch.
     small script that awaits `getCompiledSchema()` before calling
     `apiValidator(getValidationSchema("/tokens", "post"), body)` for accepted
     and rejected `expiry` values.
+  - Smoke-test a token on hardware (macOS zsh): `export NPM=http://<ip>:81/api
+    TOKEN='<token>'`, then `curl -s -G -H "Authorization: Bearer $TOKEN"
+    $NPM/logs/tail -d type=system -d lines=20`. Use `-G -d` (or quote the URL):
+    unquoted, zsh treats `?` as a glob and `&` as "run in background". Good
+    read-only endpoints: `/` (no auth), `/users/me`, `/reports/hosts`,
+    `/audit-log`, `/logs/tail`, `/schema`.
+  - Reading API errors: a path outside `/api/` on port 81 returns the SPA's
+    `index.html`, not JSON (usually `$NPM` missing `/api`). Request
+    validation failures come back as a bare `400 "Internal Error"` (upstream
+    hides non-public errors); the real reason is a `WARN [Express] ...` line
+    in the system log (`/api/logs/tail?type=system`).
+  - Harmless upstream log line at startup: `[Migrate] Current database
+    version: none`. `migrate.js` calls `currentVersion()` without
+    `tableName`, so it reads knex's default `knex_migrations` table instead of
+    NPM's `migrations` table. The data is intact.
 - Fork meta not present upstream: `CLAUDE.md`, `.gitignore`, root `README.md`
   "Supported architectures" note, `proxy-manager/CHANGELOG.md`.
 

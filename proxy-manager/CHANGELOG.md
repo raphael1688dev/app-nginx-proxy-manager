@@ -2,6 +2,22 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.2.1 (2026-11-09)
+
+### ⬆️ Upgrades
+
+- Upgrade **Node.js** `22.23.3` → `22.23.4` (`nodejs=22.23.4-1nodesource1`).
+  This is a Node.js security release: 7 CVEs fixed in `http`, `tls`, `dns`,
+  `crypto` and brotli, plus bundled OpenSSL 3.5.9, newer root certificates and
+  undici 6.29.1. The Nginx Proxy Manager backend runs on Node.js.
+- Upgrade **apache2-utils** `2.4.68-1~deb13u1` → `2.4.69-1~deb13u1` (Debian
+  security update). Its CVEs are in Apache HTTP Server modules; the add-on only
+  uses the `htpasswd` tool, so this is housekeeping.
+
+Both pins are ahead of upstream, which is otherwise unchanged; nothing else was
+updated (NPM 2.16.0, nginx 1.31.8, certbot 5.9.0 and debian-base 9.5.2 are
+already the latest).
+
 ## 4.2.0 (2026-11-08)
 
 ### ✨ New

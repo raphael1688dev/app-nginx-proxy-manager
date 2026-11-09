@@ -16,7 +16,7 @@ RUN \
     apt-get update \
     \
     && apt-get install -y --no-install-recommends \
-        apache2-utils=2.4.68-1~deb13u1 \
+        apache2-utils=2.4.69-1~deb13u1 \
         libcap2-bin=1:2.75-10+deb13u1+b3 \
     # logrotate has been rebuilt on aarch64 but not amd64, so its version
     # carries a binNMU suffix on one architecture only. Match the Debian
@@ -57,7 +57,7 @@ RUN \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         nginx=1.31.8-1~trixie \
-        nodejs=22.23.3-1nodesource1 \
+        nodejs=22.23.4-1nodesource1 \
     \
     && npm install --global yarn@1.22.22 \
     \
