@@ -121,6 +121,10 @@ builds the image locally for that machine's arch.
   apache2-utils 2.4.69 built and ran clean on aarch64 (HA OS 18.5.rc1, HA Core
   2026.11.0); `node --version` in the container is `v22.23.4`, API tokens still
   authenticate, and port 81 and the sidebar work.
+- **`4.2.2` is hardware-verified (2026-11-10):** on aarch64 the token dialog
+  stays open on an outside click or Escape, menu and dashboard links open in a
+  new tab from the sidebar, the Documentation tab shows the new sections, and
+  port 81 and the sidebar work as before.
 
 ## Repo / git
 
