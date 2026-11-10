@@ -20,7 +20,8 @@ Make that prefix a runtime setting:
     admin port it stays empty and the interface behaves as before.
 
   - A small BasePath module reads that tag. The API client, the router
-    basename and the image paths use it.
+    basename and the image paths use it. So do the addresses of the
+    menu and dashboard links, so that they also open in a new tab.
 
   - Because the files now load relative to the page, a page opened at a
     nested route asks for e.g. /nginx/assets/index.js. The admin
@@ -31,14 +32,16 @@ Make that prefix a runtime setting:
  frontend/src/Router.tsx                                |  3 ++-
  frontend/src/api/backend/base.ts                       |  3 ++-
  frontend/src/components/Loading.tsx                    |  3 ++-
+ frontend/src/components/NavLink.tsx                    |  4 +++-
  frontend/src/components/SiteHeader.tsx                 |  5 +++--
  .../components/Table/Formatter/GravatarFormatter.tsx   |  4 +++-
  frontend/src/components/Unhealthy.tsx                  |  3 ++-
  frontend/src/modules/BasePath.ts                       | 10 ++++++++++
+ frontend/src/pages/Dashboard/index.tsx                 |  9 +++++----
  frontend/src/pages/Login/index.tsx                     |  3 ++-
  frontend/src/pages/Setup/index.tsx                     |  3 ++-
  frontend/vite.config.ts                                |  3 +++
- 12 files changed, 40 insertions(+), 9 deletions(-)
+ 14 files changed, 48 insertions(+), 14 deletions(-)
 
 diff --git a/docker/rootfs/etc/nginx/conf.d/production.conf.template b/docker/rootfs/etc/nginx/conf.d/production.conf.template
 index 452609b..5568303 100644
@@ -133,6 +136,26 @@ index 14d96e6..e86e6b3 100644
  				</div>
  			)}
  			<div className="text-secondary mb-3">{label || <T id="loading" />}</div>
+diff --git a/frontend/src/components/NavLink.tsx b/frontend/src/components/NavLink.tsx
+index b6a414a..c13902b 100644
+--- a/frontend/src/components/NavLink.tsx
++++ b/frontend/src/components/NavLink.tsx
+@@ -1,4 +1,5 @@
+ import { useNavigate } from "react-router-dom";
++import { withBasePath } from "src/modules/BasePath";
+ 
+ interface Props {
+ 	children: React.ReactNode;
+@@ -12,7 +13,8 @@ export function NavLink({ children, to, isDropdownItem, onClick }: Props) {
+ 	return (
+ 		<a
+ 			className={isDropdownItem ? "dropdown-item" : "nav-link"}
+-			href={to}
++			// The full address, so the link also opens in a new tab
++			href={to ? withBasePath(to) : undefined}
+ 			onClick={(e) => {
+ 				e.preventDefault();
+ 				if (onClick) {
 diff --git a/frontend/src/components/SiteHeader.tsx b/frontend/src/components/SiteHeader.tsx
 index bf28640..77879c6 100644
 --- a/frontend/src/components/SiteHeader.tsx
@@ -210,6 +233,54 @@ index 0000000..b66a44d
 +
 +// Prefix an absolute path, such as /images/logo.svg, with the base path
 +export const withBasePath = (path: string) => `${basePath}${path}`;
+diff --git a/frontend/src/pages/Dashboard/index.tsx b/frontend/src/pages/Dashboard/index.tsx
+index 5cb6486..2806dc6 100644
+--- a/frontend/src/pages/Dashboard/index.tsx
++++ b/frontend/src/pages/Dashboard/index.tsx
+@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
+ import { HasPermission } from "src/components";
+ import { useHostReport } from "src/hooks";
+ import { T } from "src/locale";
++import { withBasePath } from "src/modules/BasePath";
+ import { DEAD_HOSTS, PROXY_HOSTS, REDIRECTION_HOSTS, STREAMS, VIEW } from "src/modules/Permissions";
+ 
+ const Dashboard = () => {
+@@ -20,7 +21,7 @@ const Dashboard = () => {
+ 						<HasPermission section={PROXY_HOSTS} permission={VIEW} hideError>
+ 							<div className="col-sm-6 col-lg-3">
+ 								<a
+-									href="/nginx/proxy"
++									href={withBasePath("/nginx/proxy")}
+ 									className="card card-sm card-link card-link-pop"
+ 									onClick={(e) => {
+ 										e.preventDefault();
+@@ -47,7 +48,7 @@ const Dashboard = () => {
+ 						<HasPermission section={REDIRECTION_HOSTS} permission={VIEW} hideError>
+ 							<div className="col-sm-6 col-lg-3">
+ 								<a
+-									href="/nginx/redirection"
++									href={withBasePath("/nginx/redirection")}
+ 									className="card card-sm card-link card-link-pop"
+ 									onClick={(e) => {
+ 										e.preventDefault();
+@@ -75,7 +76,7 @@ const Dashboard = () => {
+ 						<HasPermission section={STREAMS} permission={VIEW} hideError>
+ 							<div className="col-sm-6 col-lg-3">
+ 								<a
+-									href="/nginx/stream"
++									href={withBasePath("/nginx/stream")}
+ 									className="card card-sm card-link card-link-pop"
+ 									onClick={(e) => {
+ 										e.preventDefault();
+@@ -100,7 +101,7 @@ const Dashboard = () => {
+ 						<HasPermission section={DEAD_HOSTS} permission={VIEW} hideError>
+ 							<div className="col-sm-6 col-lg-3">
+ 								<a
+-									href="/nginx/404"
++									href={withBasePath("/nginx/404")}
+ 									className="card card-sm card-link card-link-pop"
+ 									onClick={(e) => {
+ 										e.preventDefault();
 diff --git a/frontend/src/pages/Login/index.tsx b/frontend/src/pages/Login/index.tsx
 index d65b2dc..b341416 100644
 --- a/frontend/src/pages/Login/index.tsx

@@ -52,6 +52,37 @@ itself is serving SSL on port `443`, or another app already uses one of
 these ports, this app will not start. The host side of each port can be
 changed in the app's "Network" configuration.
 
+## Sidebar
+
+The admin web interface can also be opened inside Home Assistant. Turn on
+"Show in sidebar" on the app's page, or click "OPEN WEB UI". This works over
+HTTPS and remote access too, without opening port `81`.
+
+The sidebar and port `81` keep separate logins, because your browser stores
+the login per address. Log in once in each.
+
+## API tokens
+
+Scripts talk to the same API as the web interface, at
+`http://<your-home-assistant>:81/api`. A normal login token lasts one day; for
+scripts you can create one that lasts longer:
+
+1. Open the user menu in the top right corner and click "API Tokens".
+1. Enter your password (and two-factor code, when enabled) and choose how
+   long the token lasts, from 1 day to 3 years.
+1. Copy the token. It is shown only once.
+
+Send it in the `Authorization` header:
+
+```bash
+curl -H "Authorization: Bearer <token>" http://<your-home-assistant>:81/api/nginx/proxy-hosts
+```
+
+A token acts as its user, with that user's permissions, so create a dedicated
+user for scripts that only has the permissions it needs. Tokens are not
+stored and cannot be revoked one by one: changing the user's password ends
+every token created before it, and disabling the user ends all of its tokens.
+
 ## Storage
 
 Everything this app stores lives in its own configuration folder, which

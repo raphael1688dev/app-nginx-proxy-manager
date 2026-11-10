@@ -29,6 +29,9 @@ every run. Add "API Tokens" to the user menu: confirm your password
   - The Clipboard API is missing on plain http origins, which is how
     the admin port is usually reached, so copying falls back to the
     selection.
+
+  - While the token is shown, a click outside the dialog or the Escape
+    key does not close it, because the token cannot be shown again.
 ---
  backend/routes/tokens.js                  |   8 +-
  backend/schema/paths/tokens/2fa/post.json |   6 +
@@ -36,9 +39,9 @@ every run. Add "API Tokens" to the user menu: confirm your password
  frontend/src/api/backend/getToken.ts      |   8 +-
  frontend/src/components/SiteHeader.tsx    |  15 +-
  frontend/src/locale/src/en.json           |  51 ++++++
- frontend/src/modals/ApiTokenModal.tsx     | 208 ++++++++++++++++++++++
+ frontend/src/modals/ApiTokenModal.tsx     | 210 ++++++++++++++++++++++
  frontend/src/modals/index.ts              |   1 +
- 8 files changed, 294 insertions(+), 9 deletions(-)
+ 8 files changed, 296 insertions(+), 9 deletions(-)
 
 diff --git a/backend/routes/tokens.js b/backend/routes/tokens.js
 index 8a6a1bc..0989cf3 100644
@@ -230,10 +233,10 @@ index 11d09ea..041e3c5 100644
  	},
 diff --git a/frontend/src/modals/ApiTokenModal.tsx b/frontend/src/modals/ApiTokenModal.tsx
 new file mode 100644
-index 0000000..8f55edd
+index 0000000..eccbb36
 --- /dev/null
 +++ b/frontend/src/modals/ApiTokenModal.tsx
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,210 @@
 +import EasyModal, { type InnerModalProps } from "ez-modal-react";
 +import { type FormEvent, type ReactNode, useRef, useState } from "react";
 +import { Alert } from "react-bootstrap";
@@ -310,7 +313,9 @@ index 0000000..8f55edd
 +	};
 +
 +	return (
-+		<Modal show={visible} onHide={remove}>
++		// Once the token is shown, a click outside the dialog or the Escape key
++		// must not close it: the token can't be shown again.
++		<Modal show={visible} onHide={remove} backdrop={result ? "static" : true} keyboard={!result}>
 +			<form onSubmit={onSubmit}>
 +				<Modal.Header closeButton>
 +					<Modal.Title>

@@ -153,8 +153,10 @@ builds the image locally for that machine's arch.
     frontend base-path aware: Vite `base: "./"`, an empty
     `<meta name="ingress-path" content="" />` in `index.html`, a
     `src/modules/BasePath.ts` module used by the API client (`base.ts`), the
-    `BrowserRouter` `basename` and every `/images/...` path, plus a nested
-    `/<route>/(assets|images)/` rule in the admin `production.conf.template`.
+    `BrowserRouter` `basename`, every `/images/...` path and the `href` of the
+    menu (`NavLink.tsx`) and dashboard links (so "open in new tab" works; since
+    v4.2.2), plus a nested `/<route>/(assets|images)/` rule in the admin
+    `production.conf.template`.
     Written against NPM `v2.16.0`; **re-check it on every NPM app bump** (it is
     the patch most likely to break, e.g. on another frontend rewrite). Do
     **not** switch to a `<base href>` tag instead: the UI has many `href="#"`
@@ -180,6 +182,16 @@ builds the image locally for that machine's arch.
     `yarn install --frozen-lockfile --ignore-scripts && yarn locale-compile &&
     yarn build` in `frontend/`, and check `dist/index.html` and the bundles for
     leftover absolute `/assets/`, `/api/` or `/images/` paths.
+  - Regenerate 0004/0005 after an edit (reproduces the committed files
+    byte-for-byte when nothing changed): on a clean NPM checkout, `git apply`
+    0001–0003 and commit, `git am` 0004 and 0005, edit and `git commit --amend`
+    (rebase 0005 on top when 0004 changes), then per patch
+    `git format-patch -1 <commit> --zero-commit --no-signature --stdout`,
+    delete the ` create mode` lines and zero-pad the day in `Date:`.
+  - Trust chain for `X-Ingress-Path` (checked 2026-11-10): Home Assistant Core
+    sets it from the URL token after copying the client's headers, and the
+    Supervisor only forwards tokens it issued, so the value written into
+    `index.html` is never client-controlled on 8099.
 - **API tokens in the user menu, since v4.2.0** —
   `patches/0005-Patch-add-API-tokens-to-the-user-menu.patch` (applies on top of
   0004; both touch `SiteHeader.tsx`). A user re-enters their password (+ 2FA
@@ -200,6 +212,9 @@ builds the image locally for that machine's arch.
     English via `loadMessages`, and the repo carries no Chinese text.
   - Pitfall: `formatDateTime()` treats any number as Unix *seconds*; pass the
     backend's ISO `expires` string, never `getTime()`.
+  - While the token is shown the dialog uses `backdrop="static"` and
+    `keyboard={false}` (since v4.2.2): an accidental close would orphan a valid
+    token that can't be revoked on its own.
   - Verify backend changes without Docker: in `backend/`, `yarn install
     --ignore-scripts`, then `node validate-schema.js` (whole OpenAPI doc) and a
     small script that awaits `getCompiledSchema()` before calling
@@ -220,6 +235,9 @@ builds the image locally for that machine's arch.
     version: none`. `migrate.js` calls `currentVersion()` without
     `tableName`, so it reads knex's default `knex_migrations` table instead of
     NPM's `migrations` table. The data is intact.
+- `proxy-manager/DOCS.md` carries two fork-only sections, "Sidebar" and "API
+  tokens" (since v4.2.2). A re-sync copies upstream's `DOCS.md` over them;
+  re-add both.
 - Fork meta not present upstream: `CLAUDE.md`, `.gitignore`, root `README.md`
   "Supported architectures" note, `proxy-manager/CHANGELOG.md`.
 

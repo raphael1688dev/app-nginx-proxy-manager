@@ -2,14 +2,35 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.2.2 (2026-11-10)
+
+### 🐛 Fixes
+
+- **API tokens: a new token can no longer be lost by a stray click.** While the
+  token is shown, clicking outside the dialog or pressing Escape no longer
+  closes it. The token is shown only once and can't be revoked on its own, so
+  closing it by accident left a valid token nobody had. Close the dialog with
+  "Done" or the close button. (patch `0005`)
+- **Sidebar: menu and dashboard links now open in a new tab.** Their addresses
+  lacked the Home Assistant ingress path, so "Open in new tab", middle-click
+  and Ctrl/Cmd-click led to a Home Assistant error page. Normal clicks and
+  port `81` were not affected. (patch `0004`)
+
+### 📝 Documentation
+
+- The app's Documentation tab (`DOCS.md`) now covers the sidebar and API
+  tokens.
+- Corrected the 4.2.1 entry below: Node.js 22.23.4 fixes 6 CVEs, not 7.
+
 ## 4.2.1 (2026-11-09)
 
 ### ⬆️ Upgrades
 
 - Upgrade **Node.js** `22.23.3` → `22.23.4` (`nodejs=22.23.4-1nodesource1`).
-  This is a Node.js security release: 7 CVEs fixed in `http`, `tls`, `dns`,
-  `crypto` and brotli, plus bundled OpenSSL 3.5.9, newer root certificates and
-  undici 6.29.1. The Nginx Proxy Manager backend runs on Node.js.
+  This is a Node.js security release: 6 CVEs fixed in `http`, `tls`, `dns`,
+  `crypto`, the permission model and brotli, plus bundled OpenSSL 3.5.9, newer
+  root certificates and undici 6.29.1. The Nginx Proxy Manager backend runs on
+  Node.js.
 - Upgrade **apache2-utils** `2.4.68-1~deb13u1` → `2.4.69-1~deb13u1` (Debian
   security update). Its CVEs are in Apache HTTP Server modules; the add-on only
   uses the `htpasswd` tool, so this is housekeeping.
