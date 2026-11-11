@@ -80,6 +80,14 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   `security.debian.org/debian-security/dists/trixie-security`
   (`main/binary-arm64/Packages.xz`). A superseded Debian pin usually stays
   downloadable from the point release, so a stale pin rarely breaks the build.
+  The other sources to check each time: certbot on PyPI
+  (`https://pypi.org/pypi/certbot/json`, notes in `certbot/certbot` releases),
+  nginx.org (`nginx.org/packages/mainline/debian/dists/trixie/nginx/binary-arm64/Packages`),
+  `hassio-addons/addon-debian-base` releases and
+  `NginxProxyManager/nginx-proxy-manager` releases. Read the release notes
+  before bumping: a day-old release that fixes nothing relevant to this add-on
+  can wait for upstream (e.g. certbot 5.10.0, 2026-11-10: a webroot ownership
+  race that needs a less-privileged local user, which this container lacks).
 
 ## Versioning & releases
 
