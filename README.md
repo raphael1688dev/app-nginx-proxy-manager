@@ -24,7 +24,7 @@ Manage Nginx proxy hosts with a simple, powerful interface.
 ## About this fork
 
 This is a personal fork of
-[`hassio-addons/addon-nginx-proxy-manager`][upstream], packaged as a standalone
+[`hassio-addons/app-nginx-proxy-manager`][upstream], packaged as a standalone
 Home Assistant custom repository so it can be installed on its own.
 
 - **v4.0.0** tracks upstream's move to a **Debian** base image (Debian trixie),
@@ -138,7 +138,7 @@ SOFTWARE.
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
 [commits-shield]: https://img.shields.io/github/commit-activity/y/raphael1688dev/app-nginx-proxy-manager.svg
 [commits]: https://github.com/raphael1688dev/app-nginx-proxy-manager/commits/main
-[contributors]: https://github.com/hassio-addons/addon-nginx-proxy-manager/graphs/contributors
+[contributors]: https://github.com/hassio-addons/app-nginx-proxy-manager/graphs/contributors
 [discord-ha]: https://discord.gg/c5DvZ4e
 [discord-shield]: https://img.shields.io/discord/478094546522079232.svg
 [discord]: https://discord.me/hassioaddons
@@ -158,4 +158,4 @@ SOFTWARE.
 [releases-shield]: https://img.shields.io/github/release/raphael1688dev/app-nginx-proxy-manager.svg
 [releases]: https://github.com/raphael1688dev/app-nginx-proxy-manager/releases
 [repository]: https://github.com/hassio-addons/repository
-[upstream]: https://github.com/hassio-addons/addon-nginx-proxy-manager
+[upstream]: https://github.com/hassio-addons/app-nginx-proxy-manager

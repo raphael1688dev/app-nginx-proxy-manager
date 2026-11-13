@@ -6,7 +6,7 @@ Guidance for Claude Code when working in this repository.
 
 Home Assistant Community Add-on that packages [Nginx Proxy Manager (NPM)][npm]
 as a Home Assistant add-on. It is a fork of
-`hassio-addons/addon-nginx-proxy-manager` (originally by Franck Nijhof).
+`hassio-addons/app-nginx-proxy-manager` (originally by Franck Nijhof).
 
 The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
 
@@ -61,7 +61,7 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   (the 5 `patches/*.patch` are written against a specific NPM version and the
   Vite build may shift). Process: bump the ARG → build → fix any failing patch
   → verify on hardware. The simplest safe path for a big app jump is to re-sync
-  from upstream `hassio-addons/addon-nginx-proxy-manager` (see below).
+  from upstream `hassio-addons/app-nginx-proxy-manager` (see below).
 
 - **Prefer re-syncing from upstream over hand-porting.** Upstream does the hard
   work (frontend rewrites, patch maintenance, dep pins). When catching up, copy
@@ -71,9 +71,9 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   below. That is exactly how v4.0.0
   was produced.
 
-- **Check versions beyond upstream, too.** Upstream's Renovate can lag (it
-  missed the Node.js 22.23.4 security release for weeks), so the fork may pin
-  newer packages than upstream (since v4.2.1: `nodejs`, `apache2-utils`). On a
+- **Check versions beyond upstream, too.** Upstream's Renovate can lag, so the
+  fork may pin newer packages than upstream (since v4.2.1: `nodejs`,
+  `apache2-utils`). On a
   re-sync, keep whichever pin is newer. Quick check: NodeSource
   `https://deb.nodesource.com/node_22.x/dists/nodistro/main/binary-arm64/Packages`;
   Debian `deb.debian.org/debian/dists/trixie{,-updates}` plus
@@ -85,9 +85,8 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   nginx.org (`nginx.org/packages/mainline/debian/dists/trixie/nginx/binary-arm64/Packages`),
   `hassio-addons/addon-debian-base` releases and
   `NginxProxyManager/nginx-proxy-manager` releases. Read the release notes
-  before bumping: a day-old release that fixes nothing relevant to this add-on
-  can wait for upstream (e.g. certbot 5.10.0, 2026-11-10: a webroot ownership
-  race that needs a less-privileged local user, which this container lacks).
+  before bumping: a fresh release that fixes nothing relevant to this add-on
+  (only root runs in the container) can wait for upstream to pick it up.
 
 ## Versioning & releases
 
@@ -153,8 +152,10 @@ builds the image locally for that machine's arch.
   `url:` pointing at this fork. Upstream ships `version: dev`.
 - `config.yaml` `map:` uses the modern object form with the current type name —
   `- type: app_config` / `read_only: false` — instead of upstream's deprecated
-  short form `- addon_config:rw`. Same mount (`/config`, backed by the slug's
-  `/addon_configs/nginxproxymanager`), just no Supervisor deprecation warning.
+  short form `- addon_config:rw`. Same mount (`/config`, backed on the host by
+  `/addon_configs/<repo-hash>_nginxproxymanager`, where the hash comes from the
+  repository URL; the container name `addon_<hash>_nginxproxymanager` shows
+  it), just no Supervisor deprecation warning.
   Re-apply after a re-sync until upstream adopts it.
 - **No `build.yaml`** — rely on the `Dockerfile` `ARG BUILD_FROM` default (keeps
   Supervisor's deprecation warning away). Upstream still ships one.
