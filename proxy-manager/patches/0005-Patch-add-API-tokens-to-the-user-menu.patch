@@ -32,6 +32,10 @@ every run. Add "API Tokens" to the user menu: confirm your password
 
   - While the token is shown, a click outside the dialog or the Escape
     key does not close it, because the token cannot be shown again.
+
+  - The strings are in English, plus Estonian and Vietnamese because the
+    frontend tests require those two locales to cover every English key.
+    Other locales fall back to English.
 ---
  backend/routes/tokens.js                  |   8 +-
  backend/schema/paths/tokens/2fa/post.json |   6 +
@@ -39,15 +43,17 @@ every run. Add "API Tokens" to the user menu: confirm your password
  frontend/src/api/backend/getToken.ts      |   8 +-
  frontend/src/components/SiteHeader.tsx    |  15 +-
  frontend/src/locale/src/en.json           |  51 ++++++
+ frontend/src/locale/src/et.json           |  51 ++++++
+ frontend/src/locale/src/vi.json           |  51 ++++++
  frontend/src/modals/ApiTokenModal.tsx     | 210 ++++++++++++++++++++++
  frontend/src/modals/index.ts              |   1 +
- 8 files changed, 296 insertions(+), 9 deletions(-)
+ 10 files changed, 398 insertions(+), 9 deletions(-)
 
 diff --git a/backend/routes/tokens.js b/backend/routes/tokens.js
-index 8a6a1bc..0989cf3 100644
+index f56daa0..44177f5 100644
 --- a/backend/routes/tokens.js
 +++ b/backend/routes/tokens.js
-@@ -27,7 +27,9 @@ router
+@@ -73,7 +73,9 @@ router
  	.get(jwtdecode(), async (req, res, next) => {
  		try {
  			const data = await internalToken.getFreshToken(res.locals.access, {
@@ -58,9 +64,9 @@ index 8a6a1bc..0989cf3 100644
  				scope: typeof req.query.scope !== "undefined" ? req.query.scope : null,
  			});
  			res.status(200).send(data);
-@@ -66,8 +68,8 @@ router
+@@ -112,8 +114,8 @@ router
  	 */
- 	.post(async (req, res, next) => {
+ 	.post(twoFactorRateLimiter, async (req, res, next) => {
  		try {
 -			const { challenge_token, code } = await apiValidator(getValidationSchema("/tokens/2fa", "post"), req.body);
 -			const result = await internalToken.verify2FA(challenge_token, code);
@@ -163,7 +169,7 @@ index 77879c6..c71720f 100644
  								<a
  									href="?"
 diff --git a/frontend/src/locale/src/en.json b/frontend/src/locale/src/en.json
-index 11d09ea..041e3c5 100644
+index 8f7150a..54a093f 100644
 --- a/frontend/src/locale/src/en.json
 +++ b/frontend/src/locale/src/en.json
 @@ -143,6 +143,54 @@
@@ -221,7 +227,7 @@ index 11d09ea..041e3c5 100644
  	"auditlogs": {
  		"defaultMessage": "Audit Logs"
  	},
-@@ -791,6 +839,9 @@
+@@ -803,6 +851,9 @@
  	"user": {
  		"defaultMessage": "User"
  	},
@@ -230,6 +236,144 @@ index 11d09ea..041e3c5 100644
 +	},
  	"user.change-password": {
  		"defaultMessage": "Change Password"
+ 	},
+diff --git a/frontend/src/locale/src/et.json b/frontend/src/locale/src/et.json
+index 380fcec..e33450f 100644
+--- a/frontend/src/locale/src/et.json
++++ b/frontend/src/locale/src/et.json
+@@ -143,6 +143,54 @@
+ 	"action.view-details": {
+ 		"defaultMessage": "Vaata üksikasju"
+ 	},
++	"api-token.copied": {
++		"defaultMessage": "Kopeeritud"
++	},
++	"api-token.copy": {
++		"defaultMessage": "Kopeeri"
++	},
++	"api-token.copy-manually": {
++		"defaultMessage": "Vali token ja kopeeri see käsitsi"
++	},
++	"api-token.copy-now": {
++		"defaultMessage": "Kopeeri see token kohe. Seda ei salvestata kuhugi, seega ei saa seda uuesti näidata."
++	},
++	"api-token.description": {
++		"defaultMessage": "Token toimib sinu kontona ja sinu õigustega. Skriptide jaoks loo eraldi kasutaja, kellel on ainult vajalikud õigused."
++	},
++	"api-token.done": {
++		"defaultMessage": "Valmis"
++	},
++	"api-token.expires-after": {
++		"defaultMessage": "Aegub pärast"
++	},
++	"api-token.expiry.1d": {
++		"defaultMessage": "1 päev"
++	},
++	"api-token.expiry.1y": {
++		"defaultMessage": "1 aasta"
++	},
++	"api-token.expiry.2y": {
++		"defaultMessage": "2 aastat"
++	},
++	"api-token.expiry.30d": {
++		"defaultMessage": "30 päeva"
++	},
++	"api-token.expiry.3y": {
++		"defaultMessage": "3 aastat"
++	},
++	"api-token.expiry.7d": {
++		"defaultMessage": "7 päeva"
++	},
++	"api-token.expiry.90d": {
++		"defaultMessage": "90 päeva"
++	},
++	"api-token.generate": {
++		"defaultMessage": "Loo token"
++	},
++	"api-token.revoke": {
++		"defaultMessage": "Tokeneid ei salvestata, seega ei saa neid loetleda ega ükshaaval tühistada. Parooli muutmine lõpetab kõik enne seda loodud tokenid ja kasutaja väljalülitamine lõpetab kõik tema tokenid."
++	},
+ 	"auditlogs": {
+ 		"defaultMessage": "Auditilogid"
+ 	},
+@@ -803,6 +851,9 @@
+ 	"user": {
+ 		"defaultMessage": "Kasutaja"
+ 	},
++	"user.api-tokens": {
++		"defaultMessage": "API tokenid"
++	},
+ 	"user.change-password": {
+ 		"defaultMessage": "Muuda parooli"
+ 	},
+diff --git a/frontend/src/locale/src/vi.json b/frontend/src/locale/src/vi.json
+index 53ee2e6..d726b22 100644
+--- a/frontend/src/locale/src/vi.json
++++ b/frontend/src/locale/src/vi.json
+@@ -143,6 +143,54 @@
+ 	"action.view-details": {
+ 		"defaultMessage": "Xem chi tiết"
+ 	},
++	"api-token.copied": {
++		"defaultMessage": "Đã sao chép"
++	},
++	"api-token.copy": {
++		"defaultMessage": "Sao chép"
++	},
++	"api-token.copy-manually": {
++		"defaultMessage": "Hãy chọn mã thông báo và sao chép thủ công"
++	},
++	"api-token.copy-now": {
++		"defaultMessage": "Hãy sao chép mã thông báo này ngay. Mã không được lưu ở đâu cả nên không thể hiển thị lại."
++	},
++	"api-token.description": {
++		"defaultMessage": "Mã thông báo hoạt động như tài khoản của bạn, với các quyền của bạn. Với script, hãy tạo một người dùng riêng chỉ có những quyền cần thiết."
++	},
++	"api-token.done": {
++		"defaultMessage": "Xong"
++	},
++	"api-token.expires-after": {
++		"defaultMessage": "Hết hạn sau"
++	},
++	"api-token.expiry.1d": {
++		"defaultMessage": "1 ngày"
++	},
++	"api-token.expiry.1y": {
++		"defaultMessage": "1 năm"
++	},
++	"api-token.expiry.2y": {
++		"defaultMessage": "2 năm"
++	},
++	"api-token.expiry.30d": {
++		"defaultMessage": "30 ngày"
++	},
++	"api-token.expiry.3y": {
++		"defaultMessage": "3 năm"
++	},
++	"api-token.expiry.7d": {
++		"defaultMessage": "7 ngày"
++	},
++	"api-token.expiry.90d": {
++		"defaultMessage": "90 ngày"
++	},
++	"api-token.generate": {
++		"defaultMessage": "Tạo mã thông báo"
++	},
++	"api-token.revoke": {
++		"defaultMessage": "Mã thông báo không được lưu, nên không thể liệt kê hay thu hồi từng mã. Đổi mật khẩu sẽ vô hiệu hóa mọi mã được tạo trước đó, và tắt người dùng sẽ vô hiệu hóa toàn bộ mã của người đó."
++	},
+ 	"auditlogs": {
+ 		"defaultMessage": "Nhật ký hoạt động"
+ 	},
+@@ -803,6 +851,9 @@
+ 	"user": {
+ 		"defaultMessage": "Người dùng"
+ 	},
++	"user.api-tokens": {
++		"defaultMessage": "Mã thông báo API"
++	},
+ 	"user.change-password": {
+ 		"defaultMessage": "Đổi mật khẩu"
  	},
 diff --git a/frontend/src/modals/ApiTokenModal.tsx b/frontend/src/modals/ApiTokenModal.tsx
 new file mode 100644

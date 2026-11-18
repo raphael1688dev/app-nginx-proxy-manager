@@ -2,6 +2,46 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.3.0 (2026-11-18)
+
+### ⬆️ Upgrades
+
+- **Nginx Proxy Manager** `v2.16.0` → `v2.17.0` (`ARG NGINX_PROXY_MANAGER_VERSION`).
+  Mostly fixes, several of them security fixes: a login timing oracle is
+  closed, logins are rate limited, certificate private keys are no longer
+  returned by the API, validating a certificate needs a login, and backend
+  dependency updates fix 15 advisories (including a body-parser DoS). Also new
+  DNS providers, certificate details in the host tables, a warning before
+  closing a form with unsaved changes, and new dark-mode colours.
+  - ⚠️ Upstream updated several Certbot DNS plugins. The EdgeDNS, Beget and
+    Infomaniak plugins have breaking changes: re-create certificates that use
+    them. Check that DNS-validated certificates still renew.
+- **certbot** `5.9.0` → `5.10.0`, matching upstream.
+- **Node.js** `22.23.4` → `22.23.5` (`nodejs=22.23.5-1nodesource1`), a
+  security release with several high-severity `http2` and `tls` fixes. Ahead
+  of upstream.
+- **apache2-utils** `2.4.69-1~deb13u1` → `2.4.71-1~deb13u1` (Debian security
+  update; its CVEs are in Apache HTTP Server modules, and the add-on only uses
+  `htpasswd`). Ahead of upstream.
+
+### 🔁 Patches
+
+- `0004` and `0005` regenerated against Nginx Proxy Manager `v2.17.0`. Their
+  changes are the same; only line numbers and context moved, so they apply
+  exactly instead of by fuzzy matching.
+- `0005` now also carries Estonian and Vietnamese strings for the API token
+  dialog. Upstream's frontend tests require those two locales to cover every
+  English string; since 4.2.0 the English-only strings made those tests fail.
+  The build never runs the tests, so the add-on itself was not affected. Other
+  languages still show the dialog in English.
+
+### ✅ Verified before release
+
+- All five patches apply to `v2.17.0`; the frontend type-checks and builds,
+  with no absolute `/api/`, `/assets/` or `/images/` paths left in the output.
+- All 57 frontend tests pass; the backend OpenAPI document validates and the
+  API token `expiry` rules accept and reject the right values.
+
 ## 4.2.2 (2026-11-10)
 
 ### 🐛 Fixes

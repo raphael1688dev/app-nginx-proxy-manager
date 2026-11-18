@@ -30,6 +30,7 @@ Home Assistant custom repository so it can be installed on its own.
 - **v4.0.0** tracks upstream's move to a **Debian** base image (Debian trixie),
   Nginx Proxy Manager **2.16.0**, nginx 1.31.x (nginx.org mainline), Node 22 and
   certbot in a pip venv.
+- **v4.3.0** moves to Nginx Proxy Manager **2.17.0**.
 - Only **64-bit** architectures are built (`aarch64`, `amd64`) — see below.
 - **Sidebar support (v4.1.0+)**: the interface works through Home Assistant
   ingress, so it can be shown in the sidebar ("Show in sidebar" on the add-on

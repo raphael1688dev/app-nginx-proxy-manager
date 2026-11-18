@@ -170,7 +170,7 @@ builds the image locally for that machine's arch.
     menu (`NavLink.tsx`) and dashboard links (so "open in new tab" works; since
     v4.2.2), plus a nested `/<route>/(assets|images)/` rule in the admin
     `production.conf.template`.
-    Written against NPM `v2.16.0`; **re-check it on every NPM app bump** (it is
+    Written against NPM `v2.17.0`; **re-check it on every NPM app bump** (it is
     the patch most likely to break, e.g. on another frontend rewrite). Do
     **not** switch to a `<base href>` tag instead: the UI has many `href="#"`
     links that a base tag would turn into page loads.
@@ -194,7 +194,12 @@ builds the image locally for that machine's arch.
     `git apply` patches 0001–0005 in order onto a clean NPM checkout, then
     `yarn install --frozen-lockfile --ignore-scripts && yarn locale-compile &&
     yarn build` in `frontend/`, and check `dist/index.html` and the bundles for
-    leftover absolute `/assets/`, `/api/` or `/images/` paths.
+    leftover absolute `/assets/`, `/api/` or `/images/` paths. Also run
+    `yarn test --run` (vitest): the Docker build never runs the tests, so a
+    patch can break them without anyone noticing.
+  - Check with `patch --verbose` that 0004/0005 apply without `fuzz`; if they
+    need it after an NPM bump, regenerate them (next item). Upstream's own
+    0001 applies with fuzz 1 on v2.17.0; that one is upstream's to fix.
   - Regenerate 0004/0005 after an edit (reproduces the committed files
     byte-for-byte when nothing changed): on a clean NPM checkout, `git apply`
     0001–0003 and commit, `git am` 0004 and 0005, edit and `git commit --amend`
@@ -221,8 +226,12 @@ builds the image locally for that machine's arch.
     a dedicated non-admin user.
   - **`GET /tokens` ignores `?expiry=`** (upstream allowed any lifetime from a
     session token, bypassing the password check). Refresh = default 1 day.
-  - **English strings only** (`locale/src/en.json`); other locales fall back to
-    English via `loadMessages`, and the repo carries no Chinese text.
+  - **Strings in English, Estonian and Vietnamese only** (`locale/src/en.json`,
+    `et.json`, `vi.json`): upstream's `et.test.ts` / `vi.test.ts` require
+    those two locales to cover every English key and to be translated, not
+    copied (since v4.3.0; before that the tests failed unnoticed). If upstream
+    adds another `<locale>.test.ts`, add that locale too. Other locales fall
+    back to English via `loadMessages`. The repo carries no Chinese text.
   - Pitfall: `formatDateTime()` treats any number as Unix *seconds*; pass the
     backend's ISO `expires` string, never `getTime()`.
   - While the token is shown the dialog uses `backdrop="static"` and

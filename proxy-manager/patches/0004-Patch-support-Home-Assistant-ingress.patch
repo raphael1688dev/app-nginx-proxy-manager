@@ -44,10 +44,10 @@ Make that prefix a runtime setting:
  14 files changed, 48 insertions(+), 14 deletions(-)
 
 diff --git a/docker/rootfs/etc/nginx/conf.d/production.conf.template b/docker/rootfs/etc/nginx/conf.d/production.conf.template
-index 452609b..5568303 100644
+index be7aca1..db0a07f 100644
 --- a/docker/rootfs/etc/nginx/conf.d/production.conf.template
 +++ b/docker/rootfs/etc/nginx/conf.d/production.conf.template
-@@ -23,6 +23,14 @@ server {
+@@ -28,6 +28,14 @@ server {
  		proxy_send_timeout 15m;
  	}
  
@@ -96,7 +96,7 @@ index dc75565..38486ae 100644
  				<div>
  					<SiteHeader />
 diff --git a/frontend/src/api/backend/base.ts b/frontend/src/api/backend/base.ts
-index d56f120..cf99a33 100644
+index e91376d..0e5b11a 100644
 --- a/frontend/src/api/backend/base.ts
 +++ b/frontend/src/api/backend/base.ts
 @@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
@@ -324,7 +324,7 @@ index 4becf5f..260581f 100644
  					/>
  				</div>
 diff --git a/frontend/vite.config.ts b/frontend/vite.config.ts
-index 1e00d06..a02b907 100644
+index 6a00563..ac49447 100644
 --- a/frontend/vite.config.ts
 +++ b/frontend/vite.config.ts
 @@ -21,6 +21,9 @@ const runLocaleScripts = () => {
