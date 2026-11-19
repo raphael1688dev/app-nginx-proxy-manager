@@ -72,9 +72,11 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   was produced.
 
 - **Check versions beyond upstream, too.** Upstream's Renovate can lag, so the
-  fork may pin newer packages than upstream (since v4.2.1: `nodejs`,
-  `apache2-utils`). On a
-  re-sync, keep whichever pin is newer. Quick check: NodeSource
+  fork may pin newer versions than upstream (since v4.2.1: `nodejs`,
+  `apache2-utils`; since v4.3.0 also `ARG NGINX_PROXY_MANAGER_VERSION`, taken
+  before upstream merged its own bump). On a re-sync, keep whichever pin is
+  newer: copying upstream's `Dockerfile` wholesale would otherwise downgrade
+  them, and a lower NPM version would also no longer match patches 0004/0005. Quick check: NodeSource
   `https://deb.nodesource.com/node_22.x/dists/nodistro/main/binary-arm64/Packages`;
   Debian `deb.debian.org/debian/dists/trixie{,-updates}` plus
   `security.debian.org/debian-security/dists/trixie-security`
@@ -106,6 +108,12 @@ certbot.
 The fastest real verification is to install the add-on on a Home Assistant box
 (add this repo as a custom repository) and watch the add-on Log — Supervisor
 builds the image locally for that machine's arch.
+
+Home Assistant only offers an update when `config.yaml` `version:` changes. If
+a change is pushed under a version that is already installed (e.g. folding a
+fix into an unreleased version), refresh the store ("Check for updates") and
+press **Rebuild** on the add-on page instead. Supervisor rebuilds from the
+refreshed repository only while the version is unchanged.
 
 **Verified history:**
 - The `3.x` line (Alpine base 21 / nginx 1.30.2 / Node 24) built and ran clean
