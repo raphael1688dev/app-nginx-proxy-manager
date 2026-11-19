@@ -132,6 +132,10 @@ builds the image locally for that machine's arch.
   stays open on an outside click or Escape, menu and dashboard links open in a
   new tab from the sidebar, the Documentation tab shows the new sections, and
   port 81 and the sidebar work as before.
+- **`4.3.0` is hardware-verified (2026-11-19):** NPM 2.17.0 with patches
+  0001–0005, nginx 1.31.9, Node.js 22.23.5, certbot 5.10.0 and apache2-utils
+  2.4.71 built and ran clean on aarch64; port 81 and the sidebar log in, an
+  existing API token still authenticates, and the certificates page is fine.
 
 ## Repo / git
 
