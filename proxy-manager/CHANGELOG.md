@@ -16,6 +16,12 @@ All notable changes to this add-on are documented in this file.
   - ⚠️ Upstream updated several Certbot DNS plugins. The EdgeDNS, Beget and
     Infomaniak plugins have breaking changes: re-create certificates that use
     them. Check that DNS-validated certificates still renew.
+- **nginx** `1.31.8` → `1.31.9` (`nginx=1.31.9-1~trixie`, nginx.org mainline),
+  matching upstream. A security release fixing 10 CVEs, among them memory
+  corruption in HTTP/2 flow control (rated major), use-after-free bugs in
+  HTTP/2, HTTP/3 and the `resolver` directive, and a buffer overflow with
+  `try_files` plus `alias`. nginx also now rejects some malformed requests,
+  such as header lines without a colon.
 - **certbot** `5.9.0` → `5.10.0`, matching upstream.
 - **Node.js** `22.23.4` → `22.23.5` (`nodejs=22.23.5-1nodesource1`), a
   security release with several high-severity `http2` and `tls` fixes. Ahead
