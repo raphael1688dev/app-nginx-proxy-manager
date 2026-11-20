@@ -2,6 +2,28 @@
 
 All notable changes to this add-on are documented in this file.
 
+## 4.3.1 (2026-11-20)
+
+### ⬆️ Upgrades
+
+- **Nginx Proxy Manager** `v2.17.0` → `v2.17.1`. A small release:
+  - Fixes the SSL options (Force SSL, HTTP/2, HSTS) switching back off when a
+    new certificate is requested while creating a host.
+  - Moves nginx's proxy variables (`$forward_host`, `$forward_scheme`,
+    `$x_forwarded_*`) from `nginx.conf` into their own include file; custom
+    `http_top.conf` snippets can still redefine them.
+  - Dependency updates (Vite, better-sqlite3, Tabler).
+  - Its "OpenResty with backported fixes" note does not apply here: this
+    add-on uses nginx from nginx.org, already at 1.31.9 with those fixes.
+- No other version changed. Patches `0004` and `0005` apply to `v2.17.1`
+  exactly, without changes.
+
+### ✅ Verified before release
+
+- The frontend type-checks and builds with no absolute `/api/`, `/assets/` or
+  `/images/` paths left; all 57 frontend tests pass; the backend OpenAPI
+  document validates and the API token `expiry` rules behave as before.
+
 ## 4.3.0 (2026-11-18)
 
 ### ⬆️ Upgrades

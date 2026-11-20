@@ -182,7 +182,8 @@ refreshed repository only while the version is unchanged.
     menu (`NavLink.tsx`) and dashboard links (so "open in new tab" works; since
     v4.2.2), plus a nested `/<route>/(assets|images)/` rule in the admin
     `production.conf.template`.
-    Written against NPM `v2.17.0`; **re-check it on every NPM app bump** (it is
+    Written against NPM `v2.17.0`, applies unchanged to `v2.17.1`; **re-check it
+    on every NPM app bump** (it is
     the patch most likely to break, e.g. on another frontend rewrite). Do
     **not** switch to a `<base href>` tag instead: the UI has many `href="#"`
     links that a base tag would turn into page loads.
@@ -211,7 +212,9 @@ refreshed repository only while the version is unchanged.
     patch can break them without anyone noticing.
   - Check with `patch --verbose` that 0004/0005 apply without `fuzz`; if they
     need it after an NPM bump, regenerate them (next item). Upstream's own
-    0001 applies with fuzz 1 on v2.17.0; that one is upstream's to fix.
+    0001 applies with fuzz on `nginx.conf` (one hunk on v2.17.0, two on
+    v2.17.1); that one is upstream's to fix, but check the patched
+    `nginx.conf` has no `/data/` paths left.
   - Regenerate 0004/0005 after an edit (reproduces the committed files
     byte-for-byte when nothing changed): on a clean NPM checkout, `git apply`
     0001–0003 and commit, `git am` 0004 and 0005, edit and `git commit --amend`
