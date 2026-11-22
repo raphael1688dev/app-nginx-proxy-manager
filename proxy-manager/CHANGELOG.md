@@ -15,8 +15,16 @@ All notable changes to this add-on are documented in this file.
   - Dependency updates (Vite, better-sqlite3, Tabler).
   - Its "OpenResty with backported fixes" note does not apply here: this
     add-on uses nginx from nginx.org, already at 1.31.9 with those fixes.
-- No other version changed. Patches `0004` and `0005` apply to `v2.17.1`
-  exactly, without changes.
+- **Debian 13.8** point release (2026-11-21) re-pins, needed to build at all:
+  apt only installs versions still listed in the archive's package index, and
+  the point release replaced `patch` `2.8-2` there, so the old pin made the
+  image fail to build (`Version '2.8-2' for 'patch' was not found`).
+  - `patch` `2.8-2` → `2.8-2+deb13u1` (fixes CVE-2026-115207, out-of-tree
+    file creation).
+  - `openssl` and `libssl-dev` `3.5.7-1~deb13u3` → `3.5.9-1~deb13u1`
+    (OpenSSL 3.5.9). The old version is still listed in `trixie-security`,
+    but will disappear from there too.
+- Patches `0004` and `0005` apply to `v2.17.1` exactly, without changes.
 
 ### ✅ Verified before release
 

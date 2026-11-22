@@ -80,8 +80,13 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   `https://deb.nodesource.com/node_22.x/dists/nodistro/main/binary-arm64/Packages`;
   Debian `deb.debian.org/debian/dists/trixie{,-updates}` plus
   `security.debian.org/debian-security/dists/trixie-security`
-  (`main/binary-arm64/Packages.xz`). A superseded Debian pin usually stays
-  downloadable from the point release, so a stale pin rarely breaks the build.
+  (`main/binary-arm64/Packages.xz`). **A Debian point release breaks stale
+  pins**: apt only installs versions listed in the package index, and a point
+  release replaces the old version there (the `.deb` may linger in the pool,
+  but apt cannot see it), so the build fails with `E: Version '...' for '...'
+  was not found`. This happened with Debian 13.8 on 2026-11-21. After every
+  point release, re-pin each package whose version left the index (a version
+  still listed only in `trixie-security` works until security drops it).
   The other sources to check each time: certbot on PyPI
   (`https://pypi.org/pypi/certbot/json`, notes in `certbot/certbot` releases),
   nginx.org (`nginx.org/packages/mainline/debian/dists/trixie/nginx/binary-arm64/Packages`),
