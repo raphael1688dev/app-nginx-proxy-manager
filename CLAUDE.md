@@ -34,7 +34,7 @@ The add-on lives entirely under [`proxy-manager/`](proxy-manager/):
   covers them. To bump the base, edit that ARG. (armv7/32-bit was dropped back in
   v3.0.0 and is not coming back.)
 
-- **Dependencies are Debian `apt` pins**, e.g. `nginx=1.31.9-1~trixie`,
+- **Dependencies are Debian `apt` pins**, e.g. `nginx=1.31.10-1~trixie`,
   `nodejs=22.x-1nodesource1`. Exact versions are Debian-trixie-specific; look them
   up with `apt-cache policy <pkg>` in the base image, or on
   <https://packages.debian.org>. The `logrotate` pin uses a trailing `*` because

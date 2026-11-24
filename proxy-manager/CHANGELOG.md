@@ -15,6 +15,12 @@ All notable changes to this add-on are documented in this file.
   - Dependency updates (Vite, better-sqlite3, Tabler).
   - Its "OpenResty with backported fixes" note does not apply here: this
     add-on uses nginx from nginx.org, already at 1.31.9 with those fixes.
+- **nginx** `1.31.9` → `1.31.10` (`nginx=1.31.10-1~trixie`, nginx.org
+  mainline). Fixes excessive CPU use that a client could cause with
+  `ssl_early_data` (CVE-2026-132779; the add-on's own configuration does not
+  use that directive) and nginx hogging the CPU on SSL connections to
+  backends, which proxy hosts that forward over `https` use. Ahead of
+  upstream.
 - **Debian 13.8** point release (2026-11-21) re-pins, needed to build at all:
   apt only installs versions still listed in the archive's package index, and
   the point release replaced `patch` `2.8-2` there, so the old pin made the
