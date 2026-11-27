@@ -21,6 +21,11 @@ All notable changes to this add-on are documented in this file.
   use that directive) and nginx hogging the CPU on SSL connections to
   backends, which proxy hosts that forward over `https` use. Ahead of
   upstream.
+- **debian-base** `9.5.2` → `9.6.0` (`ARG BUILD_FROM`), matching upstream:
+  the base image moves to Debian 13.8 and bashio 0.20.0 (can reach the
+  Supervisor over its Unix socket, fixes a cache race). The add-on's startup
+  scripts only use bashio's logging, exit, and DNS helpers, which are
+  unchanged.
 - **Debian 13.8** point release (2026-11-21) re-pins, needed to build at all:
   apt only installs versions still listed in the archive's package index, and
   the point release replaced `patch` `2.8-2` there, so the old pin made the
